@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_models_do_not_import_lightning():
-    modules = sorted(".".join(p.relative_to(ROOT).with_suffix("").parts)
-                     for p in (ROOT / "src" / "models").rglob("*.py"))
+    modules = sorted(".".join(p.relative_to(ROOT / "src").with_suffix("").parts)
+                     for p in (ROOT / "src" / "g4shape" / "models").rglob("*.py"))
     code = ("import sys\n" + "".join(f"import {m}\n" for m in modules)
             + "bad = sorted(m for m in sys.modules if m.split('.')[0] == 'pytorch_lightning'"
               " or m.startswith('src.lightning'))\n"
@@ -65,12 +65,12 @@ def _src_imports(path):
 
 def test_layer_imports_follow_the_allowed_map():
     bad = []
-    for path in sorted((ROOT / "src").rglob("*.py")):
-        layer = path.relative_to(ROOT / "src").parts[0].removesuffix(".py")
+    for path in sorted((ROOT / "src" / "g4shape").rglob("*.py")):
+        layer = path.relative_to(ROOT / "src" / "g4shape").parts[0].removesuffix(".py")
         assert layer in ALLOWED, f"new top-level module {layer!r}: add it to ALLOWED"
         for name in _src_imports(path):
             parts = name.split(".")
-            if parts[0] == "src" and len(parts) > 1 and parts[1] not in ALLOWED[layer]:
+            if parts[0] == "g4shape" and len(parts) > 1 and parts[1] not in ALLOWED[layer]:
                 bad.append(f"{path.relative_to(ROOT)} imports {name}")
     assert not bad, "\n".join(bad)
 
@@ -78,7 +78,7 @@ def test_layer_imports_follow_the_allowed_map():
 def test_src_and_tests_are_self_contained():
     """No import or sys.path hack pointing at reference/ or rework/ (or any path outside)."""
     bad = []
-    for path in sorted([*(ROOT / "src").rglob("*.py"), *(ROOT / "tests").rglob("*.py")]):
+    for path in sorted([*(ROOT / "src" / "g4shape").rglob("*.py"), *(ROOT / "tests").rglob("*.py")]):
         if path.name == "test_layering.py":
             continue
         text = path.read_text()
