@@ -1,0 +1,93 @@
+# ABLATION ARM B: signed position features ONLY, condition K+ + PDS.
+# Identical to configs/fast_pds_gatv2_pos.yaml except graph_encoder_kwargs is empty, so the only
+# difference from the baseline configs/fast_pds.yaml is features.position_encoding = true.
+#
+# This is the arm the permutation importance predicts will carry most of the gain: edge/loop
+# signed position has d_pearson ~0.14 in BOTH conditions while node position has ~0.000
+# (project/docs/INTERPRETATION_AUDIT.md).
+#
+# WHY A SEPARATE CONFIG: run_fast.sh's TAG= only renames the run, it does NOT select a config.
+#
+# Train: EXP=posonly ./run_fast.sh train PDS       (-> runs/fast_PDS_posonly)
+data:
+  genome_dir: data/hg19
+  index_dir: data/g4seq_PDS_fast
+  flank: 100
+  reverse_strand: +
+  use_topology: true
+  max_train: null
+  max_val: null
+  max_test: null
+  subsample_seed: 0
+  batch_size: 256
+  eval_batch_size: 512
+  num_workers: auto
+model:
+  hidden_dim: 64
+  dropout: 0.2
+  graph_encoder: diffusion_gat
+  global_encoder: topo_curve
+  fusion: gated
+  classifier: binary_mlp
+  graph_encoder_kwargs: {}   # EXP (ablated: baseline GATv1 attention)
+  global_encoder_kwargs: {}
+  fusion_kwargs: {}
+  classifier_kwargs: {}
+task:
+  task: regression
+  label_threshold: 35.0
+  y_mean: 2.6497314875100493
+  y_std: 7.775820658477637
+  threshold_grid: {start: 5.0, stop: 45.0, step: 0.1}   # tuned on val; 30-34.9 clipped the optimum
+trainer:
+  max_epochs: 1
+  seed: 42
+  accelerator: auto
+  devices: auto
+  strategy: auto
+  precision: 32-true
+  gradient_clip_val: null
+  log_every_n_steps: 50
+  out_dir: runs
+  run_name: fast_PDS_posonly   # EXP
+resources:
+  max_gpus: null
+  min_free_memory_gb: 8.0
+  max_utilization: 10.0
+  memory_share: 0.9
+  sample_seconds: 3.0
+  on_busy: wait
+  wait_timeout_min: 120.0
+  poll_seconds: 60.0
+  cpu_share: 1.0               # all idle cores (featurisation is the bottleneck)
+  max_workers_per_device: 64   # effectively no per-GPU cap; the idle-core budget decides
+  nice: 10
+  nccl_check: true
+features:
+  min_run_len: 2
+  edge_radius: 50
+  context_bases: 2
+  flank_window: 20
+  topo_clouds:
+  - A
+  - C
+  - G
+  - T
+  - GG
+  - CC
+  - AGGG|CGGG|GAGG|GCGG|GGAG|GGCG|GGGA|GGGC|GGGT|GGTG|GTGG|TGGG
+  step_size: 1.0
+  max_step: 20
+  position_encoding: true   # EXP
+optim:
+  lr: 0.001
+  betas:
+  - 0.9
+  - 0.999
+  eps: 1.0e-07
+  weight_decay: 0.0
+  scheduler: exponential
+  decay_rate: 0.99
+  decay_steps: 10000
+  plateau_factor: 0.5
+  plateau_patience: 3
