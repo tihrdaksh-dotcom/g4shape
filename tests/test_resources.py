@@ -218,7 +218,7 @@ def test_rank_exits_when_rank0_dies(tmp_path):
 
 
 def test_two_process_ddp_run_through_cli(data, tmp_path):
-    """Real DDP (2 CPU processes, gloo) via `python -m src.train`: rank 1 is re-launched by
+    """Real DDP (2 CPU processes, gloo) via `python -m g4shape.train`: rank 1 is re-launched by
     Lightning and must reuse rank 0's run dir; metrics are gathered; test runs on 1 device."""
     d, _, _ = data
     cfg = tmp_path / "ddp.yaml"
@@ -231,7 +231,7 @@ def test_two_process_ddp_run_through_cli(data, tmp_path):
         "resources": {"nice": 0},
     }))
     env = {k: v for k, v in os.environ.items() if k not in (HANDOFF_ENV, "LOCAL_RANK")}
-    res = subprocess.run([sys.executable, "-m", "src.train", "--config", str(cfg)], cwd=ROOT,
+    res = subprocess.run([sys.executable, "-m", "g4shape.train", "--config", str(cfg)], cwd=ROOT,
                          env=env, capture_output=True, text=True, timeout=300)
     assert res.returncode == 0, res.stderr[-3000:]
     runs = list((tmp_path / "runs").iterdir())

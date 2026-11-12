@@ -1,10 +1,10 @@
 """Train + test one experiment from an ``ExperimentConfig`` (YAML).
 
-    python -m src.train --config configs/transg4_k.yaml
-    python -m src.train --config configs/transg4_k.yaml --set model.hidden_dim=32 --set data.max_train=1000000
-    python -m src.train --print-config > my.yaml        # the defaults, to edit
-    python -m src.train --resume runs/<run>             # continue a stopped run
-    python -m src.train --config X --auto-resume        # also grow onto GPUs freed later
+    python -m g4shape.train --config configs/transg4_k.yaml
+    python -m g4shape.train --config configs/transg4_k.yaml --set model.hidden_dim=32 --set data.max_train=1000000
+    python -m g4shape.train --print-config > my.yaml        # the defaults, to edit
+    python -m g4shape.train --resume runs/<run>             # continue a stopped run
+    python -m g4shape.train --config X --auto-resume        # also grow onto GPUs freed later
 
 Stop / resume: Ctrl-C, ``kill <pid>`` or ``touch <run_dir>/STOP`` saves
 ``checkpoints/resume.ckpt`` and stops (exit code 75); a checkpoint is also written every
@@ -211,7 +211,7 @@ def run(cfg: ExperimentConfig, trainer_kwargs: Optional[dict] = None,
         _end_distributed(trainer)
         if trainer.is_global_zero:
             print(f"[train] paused ({p.reason}) at step {p.step}; continue with: "
-                  f"python -m src.train --resume {run_dir}", flush=True)
+                  f"python -m g4shape.train --resume {run_dir}", flush=True)
         return {"run_dir": str(run_dir), "paused": p.reason, "checkpoint": p.checkpoint,
                 "step": p.step}
     finally:
@@ -300,14 +300,14 @@ def _supervise(cfg: ExperimentConfig, overrides: list[str], config: Optional[str
             args = ["--resume", str(run_dir), *[a for o in overrides if o.startswith(RESUME_OVERRIDABLE)
                                                 for a in ("--set", o)]]
         session += 1
-        print(f"[auto-resume] session {session}: python -m src.train {' '.join(args)}", flush=True)
-        child = subprocess.Popen([sys.executable, "-m", "src.train", *args], env=env,
+        print(f"[auto-resume] session {session}: python -m g4shape.train {' '.join(args)}", flush=True)
+        child = subprocess.Popen([sys.executable, "-m", "g4shape.train", *args], env=env,
                                  preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL))
         signal.signal(signal.SIGTERM, lambda s, f: child.send_signal(signal.SIGTERM))
         code = child.wait()
         if code != EXIT_RESCALE:
             print(f"[auto-resume] finished with exit code {code}"
-                  + (f"; continue with: python -m src.train --resume {run_dir} --auto-resume"
+                  + (f"; continue with: python -m g4shape.train --resume {run_dir} --auto-resume"
                      if code == EXIT_PAUSED else ""), flush=True)
             return code
 

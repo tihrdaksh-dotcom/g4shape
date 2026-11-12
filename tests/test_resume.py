@@ -169,7 +169,7 @@ def test_ddp_stop_then_resume_on_one_device(data, tmp_path):
     assert res.returncode == EXIT_PAUSED, res.stderr[-3000:]
     assert resume_position(run_dir / "checkpoints/resume.ckpt") == (0, 1)
 
-    res = subprocess.run([sys.executable, "-m", "src.train", "--resume", str(run_dir),
+    res = subprocess.run([sys.executable, "-m", "g4shape.train", "--resume", str(run_dir),
                           "--set", "trainer.devices=1"], cwd=ROOT, env=env,
                          capture_output=True, text=True, timeout=300)
     assert res.returncode == 0, res.stderr[-3000:]
@@ -239,7 +239,7 @@ def test_signal_pauses_running_training(data, tmp_path, sig, devices):
     cfg = tmp_path / "long.yaml"
     _cfg(data, tmp_path, "long", "trainer.max_epochs=100000", f"trainer.devices={devices}").to_yaml(cfg)
     env = {k: v for k, v in os.environ.items() if k not in (HANDOFF_ENV, "LOCAL_RANK")}
-    proc = subprocess.Popen([sys.executable, "-m", "src.train", "--config", str(cfg)], cwd=ROOT,
+    proc = subprocess.Popen([sys.executable, "-m", "g4shape.train", "--config", str(cfg)], cwd=ROOT,
                             env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                             start_new_session=True)
     metrics = tmp_path / "long" / "metrics.csv"
