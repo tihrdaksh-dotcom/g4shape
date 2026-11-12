@@ -67,7 +67,7 @@ def test_forward_does_not_inspect_signatures(monkeypatch):
 def test_rejects_module_without_contract():
     c = build_components(**DIMS, global_layout=LAYOUT)
     c["global_encoder"] = nn.Linear(8, 16)  # right shapes, no contract
-    with pytest.raises(TypeError, match="global_encoder must be a src.models.stages.GlobalEncoder"):
+    with pytest.raises(TypeError, match="global_encoder must be a g4shape.models.stages.GlobalEncoder"):
         MultiModalModel(**c)
 
 
@@ -84,7 +84,7 @@ def test_factory_rejects_registered_class_without_contract(monkeypatch):
             super().__init__()
 
     monkeypatch.setitem(GLOBAL_ENCODER_REGISTRY, "plain", Plain)
-    with pytest.raises(TypeError, match="does not subclass src.models.stages.GlobalEncoder"):
+    with pytest.raises(TypeError, match="does not subclass g4shape.models.stages.GlobalEncoder"):
         build_components(**DIMS, global_encoder="plain")
 
 

@@ -98,7 +98,7 @@ def _build(stage: str, registry: Mapping[str, type], name: Optional[str],
     cls = registry[key]
     if not issubclass(cls, STAGE_BASES[stage]):
         raise TypeError(f"{cls.__name__} is registered as a {stage} but does not subclass "
-                        f"src.models.stages.{STAGE_BASES[stage].__name__}")
+                        f"g4shape.models.stages.{STAGE_BASES[stage].__name__}")
     named, var_kw = _accepted(cls)
     kwargs = dict(kwargs or {})
 
