@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from src.resources import (HANDOFF_ENV, ResourceConfig, ResourcePlan, cpu_budget, handoff,
+from g4shape.resources import (HANDOFF_ENV, ResourceConfig, ResourcePlan, cpu_budget, handoff,
                            inherited, plan_resources)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -173,7 +173,7 @@ def test_nccl_check_falls_back_to_no_p2p_then_one_gpu(env):
 
 def test_check_nccl_kills_a_hung_check(env, monkeypatch, tmp_path):
     """A check that never finishes is killed at the time limit (with its children) -> False."""
-    import src.resources as r
+    import g4shape.resources as r
     pidfile = tmp_path / "child.pid"
     monkeypatch.setattr(r, "_NCCL_CHECK_SCRIPT",
                         "import subprocess, sys, time\n"
@@ -193,7 +193,7 @@ def test_rank_exits_when_rank0_dies(tmp_path):
     import signal
     import time
     pidfile = tmp_path / "rank1.pid"
-    rank1 = ("import os, time; from src.resources import exit_with_parent; "
+    rank1 = ("import os, time; from g4shape.resources import exit_with_parent; "
              "open(%r, 'w').write(str(os.getpid())); exit_with_parent(0.1, log=lambda m: None); "
              "time.sleep(60)") % str(pidfile)
     rank0 = subprocess.Popen([sys.executable, "-c",
@@ -269,7 +269,7 @@ class _FakeRlimit:
 def test_open_file_capacity(soft, hard, want_soft, want_strategy):
     import torch.multiprocessing as mp
 
-    from src.resources import ensure_open_file_capacity
+    from g4shape.resources import ensure_open_file_capacity
 
     before = mp.get_sharing_strategy()
     try:
@@ -284,7 +284,7 @@ def test_open_file_capacity(soft, hard, want_soft, want_strategy):
 def test_prepare_worker_fork_collects_and_freezes():
     import gc
 
-    from src.resources import prepare_worker_fork
+    from g4shape.resources import prepare_worker_fork
 
     class Cycle:
         pass

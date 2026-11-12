@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 import torch
 
-from src.features.config import FeatureConfig
-from src.features.sequence import encode
-from src.features.topology import extract_topology, topology_dim, topology_feature_names, topology_layout
-from src.models.factory import build_global_encoder
-from src.models.utils import count_parameters
-from src.models.global_encoders.mlp import MLPEncoder
-from src.models.global_encoders.topo_curve import TopologyCurveEncoder, preprocess_topology
+from g4shape.features.config import FeatureConfig
+from g4shape.features.sequence import encode
+from g4shape.features.topology import extract_topology, topology_dim, topology_feature_names, topology_layout
+from g4shape.models.factory import build_global_encoder
+from g4shape.models.utils import count_parameters
+from g4shape.models.global_encoders.mlp import MLPEncoder
+from g4shape.models.global_encoders.topo_curve import TopologyCurveEncoder, preprocess_topology
 
 CFG = FeatureConfig()
 SEQS = ["GGGAGGGTGGG" + "ACGT" * 51, "A" * 215, "N" * 215, "GGGTTAGGGTTAGGGTTAGGG" * 10 + "ACGTA" * 3]

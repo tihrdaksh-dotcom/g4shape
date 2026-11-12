@@ -19,8 +19,8 @@ from typing import Callable, Iterable, Optional
 
 import numpy as np
 
-from src.data.fasta import iter_fasta
-from src.features.sequence import N, encode, reverse_complement
+from g4shape.data.fasta import iter_fasta
+from g4shape.features.sequence import N, encode, reverse_complement
 
 __all__ = ["build_genome_store", "GenomeStore"]
 

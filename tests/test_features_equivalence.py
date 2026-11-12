@@ -8,10 +8,10 @@ import pytest
 from KmerTopology._compute_topology import compute_filtration_topology
 from KmerTopology.kmer_topology import KmerTopology
 
-from src.features.config import G3_4MERS, FeatureConfig
-from src.features.g_run_graph import edge_feature_names, extract_graph, node_feature_names
-from src.features.sequence import decode, encode
-from src.features.topology import extract_topology, topology_dim, topology_feature_names
+from g4shape.features.config import G3_4MERS, FeatureConfig
+from g4shape.features.g_run_graph import edge_feature_names, extract_graph, node_feature_names
+from g4shape.features.sequence import decode, encode
+from g4shape.features.topology import extract_topology, topology_dim, topology_feature_names
 
 
 def normalize_sequence(seq: str) -> str:

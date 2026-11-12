@@ -23,8 +23,8 @@ from typing import Any, Mapping, Optional, Sequence
 import torch
 import torch.nn.functional as F
 
-from src.lightning.base import COMPONENTS, LitG4Model
-from src.lightning.metrics import G4_LABEL_THRESHOLD
+from g4shape.lightning.base import COMPONENTS, LitG4Model
+from g4shape.lightning.metrics import G4_LABEL_THRESHOLD
 
 __all__ = ["LitClassificationModel", "PROBABILITY_GRID"]
 

@@ -33,9 +33,9 @@ from typing import Any, Mapping, Optional, Sequence
 import pytorch_lightning as pl
 import torch
 
-from src.lightning.metrics import best_threshold, score_detection
-from src.lightning.optim import configure_optimizers, resolve_optim
-from src.models.multimodel import MultiModalModel
+from g4shape.lightning.metrics import best_threshold, score_detection
+from g4shape.lightning.optim import configure_optimizers, resolve_optim
+from g4shape.models.multimodel import MultiModalModel
 
 __all__ = ["LitG4Model", "to_cpu"]
 

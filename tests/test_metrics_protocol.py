@@ -6,9 +6,9 @@ import json
 import numpy as np
 import pytest
 
-from src.config import ExperimentConfig
-from src.lightning.build import build_lit_model
-from src.lightning.metrics import (G4_LABEL_THRESHOLDS, TRANSG4_THRESHOLD_GRID, WIDE_GRID,
+from g4shape.config import ExperimentConfig
+from g4shape.lightning.build import build_lit_model
+from g4shape.lightning.metrics import (G4_LABEL_THRESHOLDS, TRANSG4_THRESHOLD_GRID, WIDE_GRID,
                                    resolve_threshold_grid)
 
 
@@ -36,7 +36,7 @@ def test_grid_spec_from_config_reaches_the_model():
 
 def test_evaluate_retune_rescores_without_retraining(data, tmp_path):
     from scripts.evaluate import evaluate
-    from src.train import run
+    from g4shape.train import run
 
     d, _, _ = data
     base = ["model.hidden_dim=8", "model.graph_encoder_kwargs={num_layers: 1, num_heads: 2}",

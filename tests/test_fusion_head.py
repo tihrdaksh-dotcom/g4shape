@@ -1,7 +1,7 @@
 import torch
 
-from src.models.fusion.gated import GatedFusion
-from src.models.heads.classifier import BinaryMLPClassifier
+from g4shape.models.fusion.gated import GatedFusion
+from g4shape.models.heads.classifier import BinaryMLPClassifier
 
 
 def test_gated_fusion_details_and_scale_invariance():

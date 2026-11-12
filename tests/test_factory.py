@@ -5,12 +5,12 @@ import inspect
 import pytest
 import torch
 
-from src.lightning.build import build_lit_model
-from src.models.factory import (CLASSIFIER_REGISTRY, DEFAULTS, FUSION_REGISTRY,
+from g4shape.lightning.build import build_lit_model
+from g4shape.models.factory import (CLASSIFIER_REGISTRY, DEFAULTS, FUSION_REGISTRY,
                                 GLOBAL_ENCODER_REGISTRY, GRAPH_ENCODER_REGISTRY,
                                 build_components, build_global_encoder, build_graph_encoder)
-from src.models.global_encoders.mlp import MLPEncoder
-from src.models.global_encoders.topo_curve import TopologyCurveEncoder
+from g4shape.models.global_encoders.mlp import MLPEncoder
+from g4shape.models.global_encoders.topo_curve import TopologyCurveEncoder
 
 DIMS = dict(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16)
 LAYOUT = {"num_clouds": 2, "num_radii": 2}

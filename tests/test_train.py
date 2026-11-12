@@ -8,11 +8,11 @@ import torch
 import yaml
 from torch_geometric.loader import DataLoader
 
-from src.config import ExperimentConfig
-from src.data.g4seq_index import G4SeqIndex
-from src.data.sequence_dataset import SequenceDataset
-from src.lightning.optim import TRANSG4_OPTIM, configure_optimizers, resolve_optim
-from src.train import load_trained, main, run
+from g4shape.config import ExperimentConfig
+from g4shape.data.g4seq_index import G4SeqIndex
+from g4shape.data.sequence_dataset import SequenceDataset
+from g4shape.lightning.optim import TRANSG4_OPTIM, configure_optimizers, resolve_optim
+from g4shape.train import load_trained, main, run
 
 FAST = ["model.hidden_dim=8", "model.graph_encoder_kwargs={num_layers: 1, num_heads: 2}",
         "data.batch_size=4", "data.eval_batch_size=8", "resources.nice=0", "data.num_workers=0"]

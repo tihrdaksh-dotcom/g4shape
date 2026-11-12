@@ -24,10 +24,10 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.data import Dataset as PyGDataset
 
-from src.data.featurize import feature_dims, featurize
-from src.data.genome_store import GenomeStore
-from src.data.g4seq_index import STRAND_NAME, STRAND_SIGN, G4SeqIndex
-from src.features.config import FeatureConfig
+from g4shape.data.featurize import feature_dims, featurize
+from g4shape.data.genome_store import GenomeStore
+from g4shape.data.g4seq_index import STRAND_NAME, STRAND_SIGN, G4SeqIndex
+from g4shape.features.config import FeatureConfig
 
 __all__ = ["G4WindowDataset", "subsample_rows", "load_window_bundle"]
 

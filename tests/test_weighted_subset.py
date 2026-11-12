@@ -10,8 +10,8 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 
 from scripts.make_subset import build_subset
-from src.data.g4seq_index import G4SeqIndex
-from src.data.window_dataset import G4WindowDataset, subsample_rows
+from g4shape.data.g4seq_index import G4SeqIndex
+from g4shape.data.window_dataset import G4WindowDataset, subsample_rows
 
 CUTOFF, KEEP_LOW = 10.0, 0.5
 
@@ -119,7 +119,7 @@ def test_sample_weight_only_on_weighted_splits(data, subset):
 
 
 def _lit(**kw):
-    from src.lightning.build import build_lit_model
+    from g4shape.lightning.build import build_lit_model
 
     return build_lit_model(node_dim=5, edge_dim=3, global_dim=8, hidden_dim=8,
                            global_encoder_kwargs={"num_radii": 2}, y_mean=1.0, y_std=4.0, **kw)
@@ -153,8 +153,8 @@ def test_weighted_classification_loss():
 
 def test_train_step_uses_sample_weight(data, subset):
     """The training step passes ``batch.sample_weight`` to the loss."""
-    from src.data.window_dataset import load_window_bundle
-    from src.lightning.build import build_lit_model
+    from g4shape.data.window_dataset import load_window_bundle
+    from g4shape.lightning.build import build_lit_model
 
     d, out, _ = subset
     bundle = load_window_bundle(d / "genome", out)
@@ -174,8 +174,8 @@ def test_train_step_uses_sample_weight(data, subset):
 def test_run_end_to_end_on_weighted_index(data, subset, tmp_path):
     import yaml
 
-    from src.config import ExperimentConfig
-    from src.train import run
+    from g4shape.config import ExperimentConfig
+    from g4shape.train import run
 
     d, out, _ = subset
     cfg = ExperimentConfig().with_overrides([

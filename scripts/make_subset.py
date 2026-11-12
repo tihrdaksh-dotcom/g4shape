@@ -28,8 +28,8 @@ from typing import Optional
 
 import numpy as np
 
-from src.data.g4seq_index import SPLITS, G4SeqIndex
-from src.data.window_dataset import subsample_rows
+from g4shape.data.g4seq_index import SPLITS, G4SeqIndex
+from g4shape.data.window_dataset import subsample_rows
 
 COLUMNS = ("chrom", "start", "strand", "score")
 

@@ -60,15 +60,15 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger
 from torch_geometric.loader import DataLoader
 
-from src.config import ExperimentConfig
-from src.data.featurize import feature_dims
-from src.data.g4seq_index import G4SeqIndex
-from src.data.sampler import ResumableBatchSampler, ShardSampler
-from src.data.window_dataset import load_window_bundle
-from src.lightning.base import LitG4Model
-from src.lightning.build import build_lit_model
-from src.lightning.resume import PauseCheckpoint, TrainingPaused, latest_checkpoint, resume_position
-from src.resources import (HANDOFF_ENV, GPUMemoryCap, GPUWatcher, apply_process_settings,
+from g4shape.config import ExperimentConfig
+from g4shape.data.featurize import feature_dims
+from g4shape.data.g4seq_index import G4SeqIndex
+from g4shape.data.sampler import ResumableBatchSampler, ShardSampler
+from g4shape.data.window_dataset import load_window_bundle
+from g4shape.lightning.base import LitG4Model
+from g4shape.lightning.build import build_lit_model
+from g4shape.lightning.resume import PauseCheckpoint, TrainingPaused, latest_checkpoint, resume_position
+from g4shape.resources import (HANDOFF_ENV, GPUMemoryCap, GPUWatcher, apply_process_settings,
                            exit_with_parent, handoff, inherited, plan_resources, prepare_worker_fork)
 
 __all__ = ["build_model", "run", "load_trained", "main", "RESUME_OVERRIDABLE",

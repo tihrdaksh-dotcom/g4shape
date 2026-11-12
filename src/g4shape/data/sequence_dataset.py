@@ -19,10 +19,10 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.data import Dataset as PyGDataset
 
-from src.data.fasta import read_fasta
-from src.data.featurize import feature_dims, featurize
-from src.features.config import FeatureConfig
-from src.features.sequence import encode, reverse_complement
+from g4shape.data.fasta import read_fasta
+from g4shape.data.featurize import feature_dims, featurize
+from g4shape.features.config import FeatureConfig
+from g4shape.features.sequence import encode, reverse_complement
 
 __all__ = ["SequenceDataset"]
 

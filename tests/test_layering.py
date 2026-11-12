@@ -6,15 +6,15 @@ from pathlib import Path
 
 import torch
 
-from src.models.factory import build_components
-from src.models.multimodel import MultiModalModel
+from g4shape.models.factory import build_components
+from g4shape.models.multimodel import MultiModalModel
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_models_do_not_import_lightning():
-    modules = sorted(".".join(p.relative_to(ROOT / "src").with_suffix("").parts)
-                     for p in (ROOT / "src" / "g4shape" / "models").rglob("*.py"))
+    modules = sorted(".".join(p.relative_to(ROOT / "src" / "g4shape").with_suffix("").parts)
+                     for p in (ROOT / "src" / "g4shape" / "g4shape" / "models").rglob("*.py"))
     code = ("import sys\n" + "".join(f"import {m}\n" for m in modules)
             + "bad = sorted(m for m in sys.modules if m.split('.')[0] == 'pytorch_lightning'"
               " or m.startswith('src.lightning'))\n"
@@ -24,7 +24,7 @@ def test_models_do_not_import_lightning():
 
 
 def test_bare_network_matches_lit_model():
-    from src.lightning.build import build_lit_model
+    from g4shape.lightning.build import build_lit_model
 
     kw = dict(node_dim=5, edge_dim=3, global_dim=8, hidden_dim=16,
               global_encoder_kwargs={"num_radii": 2})
@@ -65,8 +65,8 @@ def _src_imports(path):
 
 def test_layer_imports_follow_the_allowed_map():
     bad = []
-    for path in sorted((ROOT / "src" / "g4shape").rglob("*.py")):
-        layer = path.relative_to(ROOT / "src" / "g4shape").parts[0].removesuffix(".py")
+    for path in sorted((ROOT / "src" / "g4shape" / "g4shape").rglob("*.py")):
+        layer = path.relative_to(ROOT / "src" / "g4shape" / "g4shape").parts[0].removesuffix(".py")
         assert layer in ALLOWED, f"new top-level module {layer!r}: add it to ALLOWED"
         for name in _src_imports(path):
             parts = name.split(".")
@@ -78,7 +78,7 @@ def test_layer_imports_follow_the_allowed_map():
 def test_src_and_tests_are_self_contained():
     """No import or sys.path hack pointing at reference/ or rework/ (or any path outside)."""
     bad = []
-    for path in sorted([*(ROOT / "src" / "g4shape").rglob("*.py"), *(ROOT / "tests").rglob("*.py")]):
+    for path in sorted([*(ROOT / "src" / "g4shape" / "g4shape").rglob("*.py"), *(ROOT / "tests").rglob("*.py")]):
         if path.name == "test_layering.py":
             continue
         text = path.read_text()

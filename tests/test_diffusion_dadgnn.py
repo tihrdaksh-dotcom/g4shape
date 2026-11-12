@@ -7,10 +7,10 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.data import Batch, Data
 
-from src.models.graph_encoders.diffusion_conv import DiffusionAttentionConv
-from src.models.graph_encoders.diffusion_gat import DiffusionGATEncoder, DiffusionGATLayer
-from src.models.graph_encoders.pooling import WeightAndSumPool
-from src.lightning.build import build_lit_model
+from g4shape.models.graph_encoders.diffusion_conv import DiffusionAttentionConv
+from g4shape.models.graph_encoders.diffusion_gat import DiffusionGATEncoder, DiffusionGATLayer
+from g4shape.models.graph_encoders.pooling import WeightAndSumPool
+from g4shape.lightning.build import build_lit_model
 
 
 def ref_single_head(conv, feats, edge_index):

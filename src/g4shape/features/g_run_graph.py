@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
-from src.features.config import FeatureConfig
+from g4shape.features.config import FeatureConfig
 
 __all__ = ["extract_graph", "find_g_runs", "node_feature_names", "edge_feature_names"]
 

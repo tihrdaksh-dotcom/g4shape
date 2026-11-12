@@ -26,11 +26,11 @@ from typing import Any, Optional
 
 import yaml
 
-from src.features.config import FeatureConfig
-from src.lightning.build import TASKS
-from src.lightning.optim import resolve_optim
-from src.models.factory import DEFAULTS
-from src.resources import ResourceConfig
+from g4shape.features.config import FeatureConfig
+from g4shape.lightning.build import TASKS
+from g4shape.lightning.optim import resolve_optim
+from g4shape.models.factory import DEFAULTS
+from g4shape.resources import ResourceConfig
 
 __all__ = ["DataConfig", "ModelConfig", "TaskConfig", "TrainerConfig", "ExperimentConfig"]
 

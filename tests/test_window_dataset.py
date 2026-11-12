@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 from torch_geometric.loader import DataLoader
 
-from src.data.genome_store import GenomeStore
-from src.data.g4seq_index import G4SeqIndex
-from src.data.window_dataset import G4WindowDataset, load_window_bundle
-from src.features.config import FeatureConfig
-from src.features.g_run_graph import extract_graph
-from src.features.sequence import decode, encode, reverse_complement
+from g4shape.data.genome_store import GenomeStore
+from g4shape.data.g4seq_index import G4SeqIndex
+from g4shape.data.window_dataset import G4WindowDataset, load_window_bundle
+from g4shape.features.config import FeatureConfig
+from g4shape.features.g_run_graph import extract_graph
+from g4shape.features.sequence import decode, encode, reverse_complement
 
 COMP = str.maketrans("ACGTN", "TGCAN")
 
@@ -86,8 +86,8 @@ def test_dataloader_with_workers_and_subsample(data):
 def test_embeddings_end_to_end(data, tmp_path):
     """Real windows -> regression model -> per-sample embeddings + projections."""
     import torch
-    from src.analysis.embeddings import collect_embeddings, load_embeddings, project, save_embeddings
-    from src.lightning.build import build_lit_model
+    from g4shape.analysis.embeddings import collect_embeddings, load_embeddings, project, save_embeddings
+    from g4shape.lightning.build import build_lit_model
 
     d, _, _ = data
     bundle = load_window_bundle(d / "genome", d / "index")
@@ -120,7 +120,7 @@ def test_embeddings_end_to_end(data, tmp_path):
 def test_dataset_item_is_featurize_of_its_window(data):
     """Both datasets share one featurization: an index row == featurize(its window codes)."""
     import torch
-    from src.data.featurize import featurize
+    from g4shape.data.featurize import featurize
 
     d, _, _ = data
     ds = G4WindowDataset(d / "genome", d / "index", "train")

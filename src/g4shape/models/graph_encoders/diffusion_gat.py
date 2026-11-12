@@ -7,9 +7,9 @@ import torch.nn.functional as F
 from torch_geometric.nn import BatchNorm as GraphBatchNorm
 from torch_geometric.utils import add_remaining_self_loops
 
-from src.models.graph_encoders.diffusion_conv import DiffusionAttentionConv
-from src.models.graph_encoders.pooling import WeightAndSumPool, build_pool
-from src.models.stages import GraphEncoder
+from g4shape.models.graph_encoders.diffusion_conv import DiffusionAttentionConv
+from g4shape.models.graph_encoders.pooling import WeightAndSumPool, build_pool
+from g4shape.models.stages import GraphEncoder
 
 _ACTIVATIONS = {"elu": F.elu, "relu": F.relu, "gelu": F.gelu, "none": None}
 

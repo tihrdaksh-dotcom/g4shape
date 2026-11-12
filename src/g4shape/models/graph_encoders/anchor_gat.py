@@ -5,8 +5,8 @@ import torch.nn as nn
 
 from torch_geometric.nn import global_add_pool
 
-from src.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
-from src.models.graph_encoders.pooling import WeightAndSumPool
+from g4shape.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
+from g4shape.models.graph_encoders.pooling import WeightAndSumPool
 
 
 class AnchorReadout(WeightAndSumPool):

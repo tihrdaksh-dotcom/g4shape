@@ -28,8 +28,8 @@ from typing import Any, Mapping, Optional, Sequence
 import torch
 import torch.nn.functional as F
 
-from src.lightning.base import COMPONENTS, LitG4Model
-from src.lightning.metrics import G4_LABEL_THRESHOLD, TRANSG4_THRESHOLD_GRID, regression_metrics
+from g4shape.lightning.base import COMPONENTS, LitG4Model
+from g4shape.lightning.metrics import G4_LABEL_THRESHOLD, TRANSG4_THRESHOLD_GRID, regression_metrics
 
 __all__ = ["LitRegressionModel"]
 

@@ -4,11 +4,11 @@ import pytorch_lightning as pl
 import torch
 from torch_geometric.loader import DataLoader
 
-from src.data.featurize import feature_dims, featurize, featurize_sequence
-from src.data.sequence_dataset import SequenceDataset
-from src.features.config import FeatureConfig
-from src.features.sequence import encode, reverse_complement
-from src.lightning.build import build_lit_model
+from g4shape.data.featurize import feature_dims, featurize, featurize_sequence
+from g4shape.data.sequence_dataset import SequenceDataset
+from g4shape.features.config import FeatureConfig
+from g4shape.features.sequence import encode, reverse_complement
+from g4shape.lightning.build import build_lit_model
 
 CFG = FeatureConfig()
 G4 = "ACGT" * 20 + "GGGTTAGGGTTAGGGTTAGGG" + "TGCA" * 28 + "ACGTACG"  # 215 nt

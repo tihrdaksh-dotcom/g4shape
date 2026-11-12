@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from src.models.stages import Head
+from g4shape.models.stages import Head
 
 
 class BinaryMLPClassifier(Head):

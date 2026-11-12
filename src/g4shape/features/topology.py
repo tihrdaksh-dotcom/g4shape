@@ -37,8 +37,8 @@ import numpy as np
 from KmerTopology._compute_topology import compute_filtration_topology
 from KmerTopology._extract_kmers import find_kmers_position
 
-from src.features.config import FeatureConfig
-from src.features.sequence import N, decode
+from g4shape.features.config import FeatureConfig
+from g4shape.features.sequence import N, decode
 
 __all__ = ["TOPOLOGY_CURVES", "topology_dim", "topology_layout", "topology_feature_names",
            "filtration_radii", "cloud_positions", "extract_topology"]

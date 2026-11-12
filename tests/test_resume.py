@@ -10,13 +10,13 @@ import pytest
 import torch
 import yaml
 
-import src.data.sampler as sampler_mod
-import src.train as train_mod
-from src.config import ExperimentConfig
-from src.data.sampler import ResumableBatchSampler, ShardSampler
-from src.lightning.resume import latest_checkpoint, resume_position
-from src.resources import HANDOFF_ENV, GPUWatcher, ResourceConfig, ResourcePlan, gpus_available
-from src.train import EXIT_PAUSED, EXIT_RESCALE, RESUME_OVERRIDABLE, main, run
+import g4shape.data.sampler as sampler_mod
+import g4shape.train as train_mod
+from g4shape.config import ExperimentConfig
+from g4shape.data.sampler import ResumableBatchSampler, ShardSampler
+from g4shape.lightning.resume import latest_checkpoint, resume_position
+from g4shape.resources import HANDOFF_ENV, GPUWatcher, ResourceConfig, ResourcePlan, gpus_available
+from g4shape.train import EXIT_PAUSED, EXIT_RESCALE, RESUME_OVERRIDABLE, main, run
 
 ROOT = Path(__file__).resolve().parents[1]
 FAST = ["model.hidden_dim=8", "model.dropout=0.0",
@@ -161,7 +161,7 @@ def test_ddp_stop_then_resume_on_one_device(data, tmp_path):
         "def init(self, *a, callbacks=None, **kw):\n"
         "    orig(self, *a, callbacks=[Touch(), *(callbacks or [])], **kw)\n"
         "pl.Trainer.__init__ = init\n"
-        "from src.train import main\n"
+        "from g4shape.train import main\n"
         "sys.exit(main(sys.argv[1:]))\n")
     res = subprocess.run([sys.executable, str(stop_early), "--config", str(cfg)], cwd=ROOT,
                          env={**env, "PYTHONPATH": str(ROOT)}, capture_output=True, text=True,

@@ -8,11 +8,11 @@ import tarfile
 import numpy as np
 import pytest
 
-from src.config import ExperimentConfig
-from src.data.g4seq_index import G4SeqIndex
-from src.data.genome_store import GenomeStore
-from src.data.prepare import CONDITIONS, find_bedgraphs, main, prepare
-from src.train import run
+from g4shape.config import ExperimentConfig
+from g4shape.data.g4seq_index import G4SeqIndex
+from g4shape.data.genome_store import GenomeStore
+from g4shape.data.prepare import CONDITIONS, find_bedgraphs, main, prepare
+from g4shape.train import run
 
 
 def _bedgraph(rows, header=False) -> bytes:

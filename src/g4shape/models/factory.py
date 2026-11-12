@@ -26,14 +26,14 @@ import difflib
 import inspect
 from typing import Any, Mapping, Optional
 
-from src.models.fusion.gated import GatedFusion
-from src.models.global_encoders.mlp import MLPEncoder
-from src.models.global_encoders.seq_cnn import SeqCNNEncoder
-from src.models.global_encoders.topo_curve import TopologyCurveEncoder
-from src.models.graph_encoders.anchor_gat import AnchorDiffusionGATEncoder
-from src.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
-from src.models.heads.classifier import BinaryMLPClassifier
-from src.models.stages import Fusion, GlobalEncoder, GraphEncoder, Head
+from g4shape.models.fusion.gated import GatedFusion
+from g4shape.models.global_encoders.mlp import MLPEncoder
+from g4shape.models.global_encoders.seq_cnn import SeqCNNEncoder
+from g4shape.models.global_encoders.topo_curve import TopologyCurveEncoder
+from g4shape.models.graph_encoders.anchor_gat import AnchorDiffusionGATEncoder
+from g4shape.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
+from g4shape.models.heads.classifier import BinaryMLPClassifier
+from g4shape.models.stages import Fusion, GlobalEncoder, GraphEncoder, Head
 
 __all__ = ["GRAPH_ENCODER_REGISTRY", "GLOBAL_ENCODER_REGISTRY", "FUSION_REGISTRY",
            "CLASSIFIER_REGISTRY", "DEFAULTS", "STAGE_BASES", "build_graph_encoder", "build_global_encoder",

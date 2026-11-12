@@ -28,11 +28,11 @@ from pathlib import Path
 import pytorch_lightning as pl
 from torch_geometric.loader import DataLoader
 
-from src.config import ExperimentConfig
-from src.data.window_dataset import load_window_bundle
-from src.lightning.metrics import resolve_threshold_grid
-from src.resources import apply_process_settings, plan_resources, prepare_worker_fork
-from src.train import load_trained
+from g4shape.config import ExperimentConfig
+from g4shape.data.window_dataset import load_window_bundle
+from g4shape.lightning.metrics import resolve_threshold_grid
+from g4shape.resources import apply_process_settings, plan_resources, prepare_worker_fork
+from g4shape.train import load_trained
 
 
 def evaluate(checkpoint: str | Path, config: str | Path, out: str | Path, cpu: bool = False,

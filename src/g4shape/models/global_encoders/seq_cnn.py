@@ -18,7 +18,7 @@ error is raised only if the flat width is not divisible by ``seq_channels``.
 import torch
 import torch.nn as nn
 
-from src.models.stages import GlobalEncoder
+from g4shape.models.stages import GlobalEncoder
 
 
 class SeqCNNEncoder(GlobalEncoder):

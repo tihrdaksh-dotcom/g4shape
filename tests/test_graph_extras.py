@@ -5,14 +5,14 @@ import pytest
 import torch
 from torch_geometric.data import Batch
 
-from src.data.featurize import feature_dims, featurize
-from src.features.config import FeatureConfig
-from src.features.g_run_graph import extract_graph
-from src.features.graph_extras import (extract_graph_full, graph_edge_feature_names,
+from g4shape.data.featurize import feature_dims, featurize
+from g4shape.features.config import FeatureConfig
+from g4shape.features.g_run_graph import extract_graph
+from g4shape.features.graph_extras import (extract_graph_full, graph_edge_feature_names,
                                        graph_node_feature_names, target_bin)
-from src.features.sequence import encode
-from src.models.factory import build_components
-from src.models.multimodel import MultiModalModel
+from g4shape.features.sequence import encode
+from g4shape.models.factory import build_components
+from g4shape.models.multimodel import MultiModalModel
 
 ALL = FeatureConfig(position_encoding=True, gap_encoding="bucket", anchor_node=True,
                     onehot_context=6, loop_end_bases=2)

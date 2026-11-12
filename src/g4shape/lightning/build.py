@@ -6,10 +6,10 @@ in the Lightning layer, picks the training objective and wraps those components.
 Dependencies only point downwards (``lightning`` -> ``models``), never the reverse.
 """
 
-from src.lightning.classification_module import LitClassificationModel
-from src.lightning.metrics import G4_LABEL_THRESHOLD, resolve_threshold_grid
-from src.lightning.regression_module import LitRegressionModel
-from src.models.factory import DEFAULTS, build_components
+from g4shape.lightning.classification_module import LitClassificationModel
+from g4shape.lightning.metrics import G4_LABEL_THRESHOLD, resolve_threshold_grid
+from g4shape.lightning.regression_module import LitRegressionModel
+from g4shape.models.factory import DEFAULTS, build_components
 
 __all__ = ["build_lit_model"]
 

@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from src.models.stages import Fusion, GlobalEncoder, GraphEncoder, Head
+from g4shape.models.stages import Fusion, GlobalEncoder, GraphEncoder, Head
 
 __all__ = ["MultiModalModel"]
 

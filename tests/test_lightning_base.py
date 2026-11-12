@@ -6,11 +6,11 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 
-from src.analysis.embeddings import collect_embeddings
-from src.lightning.base import LitG4Model
-from src.lightning.build import build_lit_model
-from src.lightning.classification_module import LitClassificationModel
-from src.lightning.regression_module import LitRegressionModel
+from g4shape.analysis.embeddings import collect_embeddings
+from g4shape.lightning.base import LitG4Model
+from g4shape.lightning.build import build_lit_model
+from g4shape.lightning.classification_module import LitClassificationModel
+from g4shape.lightning.regression_module import LitRegressionModel
 
 KW = dict(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16, global_encoder_kwargs={"num_radii": 2})
 HOOKS = {"__init__", "target", "loss", "postprocess", "g4_labels", "step_metrics", "epoch_metrics"}

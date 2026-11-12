@@ -7,13 +7,13 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.data import Batch
 
-from src.config import ExperimentConfig
-from src.data.featurize import featurize
-from src.features.sequence import encode
-from src.models.graph_encoders.anchor_gat import AnchorDiffusionGATEncoder
-from src.models.graph_encoders.diffusion_conv import DiffusionAttentionConv
-from src.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
-from src.train import build_model
+from g4shape.config import ExperimentConfig
+from g4shape.data.featurize import featurize
+from g4shape.features.sequence import encode
+from g4shape.models.graph_encoders.anchor_gat import AnchorDiffusionGATEncoder
+from g4shape.models.graph_encoders.diffusion_conv import DiffusionAttentionConv
+from g4shape.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
+from g4shape.train import build_model
 
 
 def rand_graph(n=7, e=20, d=8, de=5, seed=0):

@@ -38,8 +38,8 @@ from typing import Iterable, Optional, Sequence
 
 import numpy as np
 
-from src.data.g4seq_index import SPLITS, G4SeqIndex, build_g4seq_index
-from src.data.genome_store import GenomeStore, build_genome_store
+from g4shape.data.g4seq_index import SPLITS, G4SeqIndex, build_g4seq_index
+from g4shape.data.genome_store import GenomeStore, build_genome_store
 
 __all__ = ["CONDITIONS", "find_bedgraphs", "prepare", "main"]
 

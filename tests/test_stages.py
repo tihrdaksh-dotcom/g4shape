@@ -8,11 +8,11 @@ import torch
 import torch.nn as nn
 from torch_geometric.data import Batch, Data
 
-from src.models.factory import (CLASSIFIER_REGISTRY, FUSION_REGISTRY, GLOBAL_ENCODER_REGISTRY,
+from g4shape.models.factory import (CLASSIFIER_REGISTRY, FUSION_REGISTRY, GLOBAL_ENCODER_REGISTRY,
                                 GRAPH_ENCODER_REGISTRY, STAGE_BASES, build_components)
-from src.models.fusion.gated import GatedFusion
-from src.models.multimodel import MultiModalModel
-from src.models.stages import GlobalEncoder
+from g4shape.models.fusion.gated import GatedFusion
+from g4shape.models.multimodel import MultiModalModel
+from g4shape.models.stages import GlobalEncoder
 
 DIMS = dict(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16)
 LAYOUT = {"num_clouds": 2, "num_radii": 2}

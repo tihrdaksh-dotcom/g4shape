@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from src.models.stages import GlobalEncoder
+from g4shape.models.stages import GlobalEncoder
 
 
 class MLPEncoder(GlobalEncoder):

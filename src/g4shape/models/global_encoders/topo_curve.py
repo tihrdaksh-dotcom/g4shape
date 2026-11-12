@@ -36,7 +36,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models.stages import GlobalEncoder
+from g4shape.models.stages import GlobalEncoder
 
 __all__ = ["TopologyCurveEncoder", "preprocess_topology"]
 

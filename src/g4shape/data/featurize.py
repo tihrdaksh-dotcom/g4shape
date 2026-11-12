@@ -27,11 +27,11 @@ import numpy as np
 import torch
 from torch_geometric.data import Data
 
-from src.features.config import FeatureConfig
-from src.features.graph_extras import (extract_graph_full, graph_edge_feature_names,
+from g4shape.features.config import FeatureConfig
+from g4shape.features.graph_extras import (extract_graph_full, graph_edge_feature_names,
                                        graph_node_feature_names)
-from src.features.sequence import encode
-from src.features.topology import extract_topology, topology_dim, topology_layout
+from g4shape.features.sequence import encode
+from g4shape.features.topology import extract_topology, topology_dim, topology_layout
 
 __all__ = ["feature_dims", "featurize", "featurize_sequence", "SEQ_CHANNELS"]
 

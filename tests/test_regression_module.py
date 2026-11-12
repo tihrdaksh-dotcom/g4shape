@@ -4,8 +4,8 @@ import torch
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
 
-from src.lightning.metrics import regression_metrics
-from src.lightning.build import build_lit_model
+from g4shape.lightning.metrics import regression_metrics
+from g4shape.lightning.build import build_lit_model
 
 
 def test_metrics_match_numpy():
@@ -49,7 +49,7 @@ def test_regression_fit_and_test_run():
 def test_detection_metrics_match_sklearn():
     from sklearn.metrics import average_precision_score, jaccard_score, precision_score, recall_score
 
-    from src.lightning.metrics import average_precision, best_threshold, score_detection
+    from g4shape.lightning.metrics import average_precision, best_threshold, score_detection
 
     rng = np.random.default_rng(1)
     y = rng.gamma(2.0, 10.0, size=500)
@@ -98,7 +98,7 @@ def test_classification_binarises_score():
 
 def test_aux_g4_loss_is_opt_in():
     import torch
-    from src.lightning.build import build_lit_model
+    from g4shape.lightning.build import build_lit_model
 
     kw = dict(node_dim=5, edge_dim=3, global_dim=8, hidden_dim=8,
               global_encoder_kwargs={"num_radii": 2}, y_mean=1.0, y_std=4.0)

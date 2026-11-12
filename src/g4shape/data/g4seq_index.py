@@ -24,7 +24,7 @@ from typing import Mapping, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-from src.data.genome_store import GenomeStore
+from g4shape.data.genome_store import GenomeStore
 
 __all__ = ["build_g4seq_index", "G4SeqIndex", "SPLITS", "STRAND_SIGN", "STRAND_NAME"]
 
