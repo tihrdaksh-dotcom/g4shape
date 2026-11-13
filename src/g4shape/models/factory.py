@@ -14,7 +14,7 @@ Every stage is built the same way (``_build``):
   training with the default value;
 * ``build_components(global_layout=...)`` is different: it describes the *input data*
   (topology ``{num_clouds, num_radii}``), so each key is passed only to a global encoder
-  that takes it (``topo_curve`` uses it, ``mlp`` does not need it).
+  that takes it (``topo_curve`` does).
 
 A new stage class must subclass its contract in ``src.models.stages`` (``STAGE_BASES``)
 and be imported and added to its registry here by hand.
@@ -27,8 +27,6 @@ import inspect
 from typing import Any, Mapping, Optional
 
 from g4shape.models.fusion.gated import GatedFusion
-from g4shape.models.global_encoders.mlp import MLPEncoder
-from g4shape.models.global_encoders.seq_cnn import SeqCNNEncoder
 from g4shape.models.global_encoders.topo_curve import TopologyCurveEncoder
 from g4shape.models.graph_encoders.anchor_gat import AnchorDiffusionGATEncoder
 from g4shape.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
@@ -46,8 +44,6 @@ GRAPH_ENCODER_REGISTRY = {
 
 GLOBAL_ENCODER_REGISTRY = {
     "topo_curve": TopologyCurveEncoder,
-    "mlp": MLPEncoder,  # baseline: the topology vector as a flat, unstructured input
-    "seq_cnn": SeqCNNEncoder,  # 1D-CNN over the raw one-hot window (needs features.sequence_branch=true)
 }
 
 FUSION_REGISTRY = {

@@ -50,12 +50,6 @@ class FeatureConfig:
     target_len: int = 15
     pos_rbf: int = 16
     pos_sigma: float = 10.0
-    # Sequence-CNN branch: when true, `global_features` carries the raw one-hot window
-    # ([seq_channels x seq_window] flattened) instead of the topology vector, so a
-    # `seq_cnn` global encoder can convolve over it. seq_window must equal the window
-    # length the model is trained on (bin + 2*flank); seq_channels is fixed at 5 (ACGTN).
-    sequence_branch: bool = False
-    seq_window: int = 0
 
     def __post_init__(self) -> None:
         clouds = (self.topo_clouds,) if isinstance(self.topo_clouds, str) else self.topo_clouds
@@ -77,8 +71,6 @@ class FeatureConfig:
             "target_len must be >= 1": self.target_len >= 1,
             "pos_rbf must be >= 2": self.pos_rbf >= 2,
             "pos_sigma must be positive": self.pos_sigma > 0,
-            "seq_window must be > 0 when sequence_branch is set":
-                (not self.sequence_branch) or self.seq_window > 0,
         }
         failed = [msg for msg, ok in checks.items() if not ok]
         if failed:

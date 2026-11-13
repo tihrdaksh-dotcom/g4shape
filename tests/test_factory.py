@@ -8,8 +8,7 @@ import torch
 from g4shape.lightning.build import build_lit_model
 from g4shape.models.factory import (CLASSIFIER_REGISTRY, DEFAULTS, FUSION_REGISTRY,
                                 GLOBAL_ENCODER_REGISTRY, GRAPH_ENCODER_REGISTRY,
-                                build_components, build_global_encoder, build_graph_encoder)
-from g4shape.models.global_encoders.mlp import MLPEncoder
+                                build_components, build_graph_encoder)
 from g4shape.models.global_encoders.topo_curve import TopologyCurveEncoder
 
 DIMS = dict(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16)
@@ -63,14 +62,9 @@ def test_layout_goes_only_to_encoders_that_use_it():
     c = build_components(**DIMS, global_layout=LAYOUT)
     assert isinstance(c["global_encoder"], TopologyCurveEncoder)
     assert (c["global_encoder"].num_clouds, c["global_encoder"].num_radii) == (2, 2)
-    c = build_components(**DIMS, global_encoder="mlp", global_layout=LAYOUT)  # no error
-    assert isinstance(c["global_encoder"], MLPEncoder)
     # explicit kwargs win over the layout (here: a mismatching layout is then rejected)
     with pytest.raises(ValueError):
         build_components(**DIMS, global_layout=LAYOUT, global_encoder_kwargs={"num_radii": 4})
-    # the layout is data, so it is not checked as a hyperparameter but kwargs still are
-    with pytest.raises(TypeError):
-        build_global_encoder("mlp", global_dim=8, hidden_dim=16, num_radii=2)
 
 
 def test_dropout_and_fixed_args_wired():
