@@ -19,19 +19,13 @@ def test_shapes_match_feature_dims():
     dims = feature_dims(CFG)
     d = featurize_sequence(G4, CFG)
     assert d.had_graph and d.x.shape[1] == dims["node_dim"] and d.edge_attr.shape[1] == dims["edge_dim"]
-    assert d.global_features.shape == (1, dims["global_dim"])
-    assert dims["global_layout"] == {"num_clouds": len(CFG.topo_clouds), "num_radii": CFG.max_step}
+    assert set(dims) == {"node_dim", "edge_dim"}
 
 
-def test_empty_graph_gets_one_zero_node_and_real_topology():
+def test_empty_graph_gets_one_zero_node():
     d = featurize_sequence("A" * 215, CFG)
     assert not d.had_graph and d.x.shape == (1, feature_dims(CFG)["node_dim"]) and not d.x.any()
-    assert d.edge_index.shape == (2, 0) and d.global_features.abs().sum() > 0  # A cloud is not empty
-
-
-def test_graph_only_ablation_zeroes_topology():
-    d = featurize(encode(G4), CFG, use_topology=False)
-    assert not d.global_features.any() and d.had_graph
+    assert d.edge_index.shape == (2, 0)
 
 
 def test_sequence_dataset_from_fasta_and_batching(tmp_path):
@@ -47,12 +41,14 @@ def test_sequence_dataset_from_fasta_and_batching(tmp_path):
 
 def test_reverse_complement_option():
     ds = SequenceDataset([G4], reverse_complement=True)
-    assert torch.equal(ds[0].global_features, featurize(reverse_complement(encode(G4))).global_features)
+    ref = featurize(reverse_complement(encode(G4)))
+    assert torch.equal(ds[0].x, ref.x) and torch.equal(ds[0].edge_attr, ref.edge_attr)
 
 
 def test_score_arbitrary_sequences_with_a_model():
     ds = SequenceDataset(SEQS, feature_config=CFG)
-    model = build_lit_model(hidden_dim=16, y_mean=10.0, y_std=5.0, **ds.dims,
+    model = build_lit_model(ds.dims["node_dim"], ds.dims["edge_dim"], hidden_dim=16,
+                            y_mean=10.0, y_std=5.0,
                             graph_encoder_kwargs={"num_layers": 1, "num_heads": 2})
     tr = pl.Trainer(accelerator="cpu", logger=False, enable_progress_bar=False, enable_model_summary=False)
     out = tr.predict(model, DataLoader(ds, batch_size=2))

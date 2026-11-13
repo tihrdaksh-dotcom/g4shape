@@ -121,8 +121,7 @@ def test_sample_weight_only_on_weighted_splits(data, subset):
 def _lit(**kw):
     from g4shape.lightning.build import build_lit_model
 
-    return build_lit_model(node_dim=5, edge_dim=3, global_dim=8, hidden_dim=8,
-                           global_encoder_kwargs={"num_radii": 2}, y_mean=1.0, y_std=4.0, **kw)
+    return build_lit_model(node_dim=5, edge_dim=3, hidden_dim=8, y_mean=1.0, y_std=4.0, **kw)
 
 
 def test_weighted_regression_loss():
@@ -142,8 +141,8 @@ def test_train_step_uses_sample_weight(data, subset):
 
     d, out, _ = subset
     bundle = load_window_bundle(d / "genome", out)
-    model = build_lit_model(bundle["node_dim"], bundle["edge_dim"], bundle["global_dim"], hidden_dim=8,
-                            y_mean=20.0, y_std=30.0, global_layout=bundle["global_layout"],
+    model = build_lit_model(bundle["node_dim"], bundle["edge_dim"], hidden_dim=8,
+                            y_mean=20.0, y_std=30.0,
                             graph_encoder_kwargs={"num_layers": 1, "num_heads": 2})
     seen, orig = [], model.loss
     model.loss = lambda o, t, weight=None: seen.append(weight) or orig(o, t, weight)

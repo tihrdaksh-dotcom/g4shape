@@ -97,7 +97,6 @@ def make_batch(with_empty=False):
             x=torch.randn(n, 5),
             edge_index=torch.randint(0, max(n, 1), (2, e)),
             edge_attr=torch.randn(e, 3),
-            global_features=torch.randn(1, 6),
             y=torch.tensor([i % 2]),
         ))
     return Batch.from_data_list(graphs)
@@ -130,9 +129,8 @@ def test_edge_attr_changes_output_by_default():
 
 
 def test_details_and_characterize():
-    lit = build_lit_model(node_dim=5, edge_dim=3, global_dim=6, hidden_dim=16,
-                          graph_encoder_kwargs={"num_layers": 2, "num_heads": 2, "k": 3},
-                          global_encoder_kwargs={"num_radii": 3})  # 1 cloud x 2 curves x 3 radii
+    lit = build_lit_model(node_dim=5, edge_dim=3, hidden_dim=16,
+                          graph_encoder_kwargs={"num_layers": 2, "num_heads": 2, "k": 3})
     b = make_batch()
     res = lit.characterize(b)
     g = res["details"]["graph"]

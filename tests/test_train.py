@@ -29,12 +29,12 @@ def test_defaults_are_transg4():
 
 
 def test_yaml_roundtrip_and_overrides(tmp_path):
-    cfg = ExperimentConfig().with_overrides(["model.hidden_dim=32", "features.max_step=10",
+    cfg = ExperimentConfig().with_overrides(["model.hidden_dim=32", "features.edge_radius=40",
                                              "optim.scheduler=plateau", "data.max_train=1000"])
     cfg.to_yaml(tmp_path / "c.yaml")
     back = ExperimentConfig.from_yaml(tmp_path / "c.yaml")
     assert back.to_dict() == cfg.to_dict()
-    assert back.model.hidden_dim == 32 and back.features.max_step == 10
+    assert back.model.hidden_dim == 32 and back.features.edge_radius == 40
     assert back.optim["scheduler"] == "plateau" and back.data.max_train == 1000
 
 

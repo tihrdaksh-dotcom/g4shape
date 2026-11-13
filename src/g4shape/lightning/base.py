@@ -1,6 +1,6 @@
 """Shared training/evaluation loop of the G4 Lightning modules.
 
-The network (``MultiModalModel``) is judged at the end by "is this window a G4?". The
+The network (``GraphModel``) is judged at the end by "is this window a G4?". The
 objective is defined by four hooks, implemented by ``LitRegressionModel``:
 
 * ``target(batch)``      what the head output is compared to by the loss,
@@ -35,11 +35,11 @@ import torch
 
 from g4shape.lightning.metrics import best_threshold, score_detection
 from g4shape.lightning.optim import configure_optimizers, resolve_optim
-from g4shape.models.multimodel import MultiModalModel
+from g4shape.models.graph_model import GraphModel
 
 __all__ = ["LitG4Model", "to_cpu"]
 
-COMPONENTS = ["graph_encoder", "global_encoder", "fusion", "classifier"]
+COMPONENTS = ["graph_encoder", "classifier"]
 
 
 def to_cpu(obj):
@@ -61,8 +61,6 @@ class LitG4Model(pl.LightningModule):
     def __init__(
         self,
         graph_encoder,
-        global_encoder,
-        fusion,
         classifier,
         optim: Optional[Mapping[str, Any]],
         label_threshold: Optional[float],
@@ -70,8 +68,7 @@ class LitG4Model(pl.LightningModule):
         initial_threshold: float,
     ):
         super().__init__()
-        self.model = MultiModalModel(graph_encoder=graph_encoder, global_encoder=global_encoder,
-                                     fusion=fusion, classifier=classifier)
+        self.model = GraphModel(graph_encoder=graph_encoder, classifier=classifier)
         self.optim = resolve_optim(optim)  # TransG4 recipe unless overridden (lightning/optim.py)
         self.label_threshold = None if label_threshold is None else float(label_threshold)
         self.threshold_grid = tuple(float(t) for t in threshold_grid)

@@ -1,23 +1,18 @@
-# FAST test-ground config, K+ condition (see project/README.md). Weighted subsample of the full index
-# data/g4seq_K, built with:
+# R0 model, K+ condition: G-run graph -> diffusion-attention encoder -> weighted-sum readout
+#   -> LayerNorm -> MLP head, regression on the G4-seq mismatch score (docs/FOCUS.md).
+# Data: weighted subsample data/g4seq_K_fast of the full index data/g4seq_K, built with:
 #   python -m scripts.make_subset --source data/g4seq_K --out data/g4seq_K_fast \
 #       --cutoff 10 --keep-low 0.02 --val 1000000 --test 2000000 --seed 0
 # train: every window with score >= 10 (weight 1) + a 2 % Bernoulli sample of the windows < 10 (weight 50,
-#        the `sample_weight` of the MSE: an unbiased estimate of the full-data loss) = 11,952,248 rows.
-# val:   uniform 1,000,000 chr2 windows; test: uniform 2,000,000 chr1 windows (unweighted, natural
-#        distribution; checkpoint selection, G4-threshold tuning and metrics).
-# max_train/max_val/max_test are null: the subset already fixes the sizes.
-# task.y_mean / y_std = exact full-train-split stats, so z-scoring matches run1.
-# data.batch_size is the GLOBAL batch (split over GPUs). Everything else = transg4_k.yaml (run1).
-# resources: cpu_share 1.0 + max_workers_per_device 64 = use every idle core for DataLoader workers
-#   (run1 used 0.5 / 8 -> 6-7 workers per GPU); lower them if the machine is shared.
-# Train: python -m src.train --config configs/fast_k.yaml [--set section.key=value ...]
+#        the `sample_weight` of the MSE: an unbiased estimate of the full-data loss).
+# val:   uniform 1,000,000 chr2 windows; test: uniform 2,000,000 chr1 windows (unweighted).
+# task.y_mean / y_std = exact full-train-split stats. data.batch_size is the GLOBAL batch.
+# Train: python -m g4shape.train --config configs/k_r0.yaml [--set section.key=value ...]
 data:
   genome_dir: data/hg19
   index_dir: data/g4seq_K_fast
   flank: 100
   reverse_strand: +
-  use_topology: true
   max_train: null
   max_val: null
   max_test: null
@@ -29,12 +24,8 @@ model:
   hidden_dim: 64
   dropout: 0.2
   graph_encoder: diffusion_gat
-  global_encoder: topo_curve
-  fusion: gated
   classifier: binary_mlp
   graph_encoder_kwargs: {}
-  global_encoder_kwargs: {}
-  fusion_kwargs: {}
   classifier_kwargs: {}
 task:
   label_threshold: 25.0   # K+ G4 label: y > 25 (TransG4 p. 8892, G4mismatch; PDS: 35)
@@ -51,7 +42,7 @@ trainer:
   gradient_clip_val: null
   log_every_n_steps: 50
   out_dir: runs
-  run_name: fast_K
+  run_name: k_r0
 resources:
   max_gpus: null
   min_free_memory_gb: 8.0
@@ -70,16 +61,7 @@ features:
   edge_radius: 50
   context_bases: 2
   flank_window: 20
-  topo_clouds:
-  - A
-  - C
-  - G
-  - T
-  - GG
-  - CC
-  - AGGG|CGGG|GAGG|GCGG|GGAG|GGCG|GGGA|GGGC|GGGT|GGTG|GTGG|TGGG
-  step_size: 1.0
-  max_step: 20
+  position_encoding: true
 optim:
   lr: 0.001
   betas:

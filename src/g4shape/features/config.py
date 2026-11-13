@@ -1,31 +1,15 @@
-"""Feature-extraction settings of the G-run graph and the topology vector (see
-g_run_graph.py and topology.py)."""
+"""Feature-extraction settings of the G-run graph (see g_run_graph.py and graph_extras.py)."""
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
-from itertools import product
-from typing import Tuple
-
-
-def kmers_with_count(letter: str, k: int, count: int) -> str:
-    """'|'-union of every k-mer with exactly ``count`` copies of ``letter`` (sorted)."""
-    return "|".join(sorted("".join(p) for p in product("ACGT", repeat=k)
-                           if "".join(p).count(letter) == count))
-
-
-G3_4MERS = kmers_with_count("G", 4, 3)  # AGGG|CGGG|GAGG|...|GGGT (12 four-mers)
 
 
 @dataclass(frozen=True)
 class FeatureConfig:
-    """Tunables of the G-run graph and the topology vector.
+    """Tunables of the G-run graph.
 
     Graph:    min_run_len, edge_radius, context_bases, flank_window
-    Topology: topo_clouds, step_size, max_step (KmerTopology engine; radii
-              linspace(0, step_size*max_step, max_step)). Each entry of ``topo_clouds`` is one
-              point cloud: a k-mer ("G", "GG") or a "|"-separated union of k-mers
-              ("GAGG|GGAG|GGGA"), whose start positions are pooled.
     Graph extras (graph_extras.py; all off by default = the original graph, bit for bit):
               position_encoding (signed offset of runs / loops from the target bin, RBF),
               gap_encoding ("raw" | "bucket": loop-length classes + gap / edge_radius),
@@ -37,9 +21,6 @@ class FeatureConfig:
     edge_radius: int = 50
     context_bases: int = 2
     flank_window: int = 20
-    topo_clouds: Tuple[str, ...] = ("A", "C", "G", "T", "GG", "CC", G3_4MERS)
-    step_size: float = 1.0
-    max_step: int = 20
     position_encoding: bool = False
     gap_encoding: str = "raw"
     loop_end_bases: int = 0
@@ -48,19 +29,11 @@ class FeatureConfig:
     pos_sigma: float = 10.0
 
     def __post_init__(self) -> None:
-        clouds = (self.topo_clouds,) if isinstance(self.topo_clouds, str) else self.topo_clouds
-        object.__setattr__(self, "topo_clouds", tuple(str(c).upper() for c in clouds))
-        kmers = [km for c in self.topo_clouds for km in c.split("|")]
         checks = {
-            "topo_clouds must be distinct, non-empty unions of ACGT k-mers (k = 1..6)": (
-                len(self.topo_clouds) > 0 and len(set(self.topo_clouds)) == len(self.topo_clouds)
-                and all(1 <= len(km) <= 6 and set(km) <= set("ACGT") for km in kmers)),
             "min_run_len must be >= 1": self.min_run_len >= 1,
             "edge_radius must be >= 1": self.edge_radius >= 1,
             "context_bases must be between 0 and 10": 0 <= self.context_bases <= 10,
             "flank_window must be >= 1": self.flank_window >= 1,
-            "step_size must be positive": self.step_size > 0,
-            "max_step must be >= 1": self.max_step >= 1,
             "gap_encoding must be 'raw' or 'bucket'": self.gap_encoding in ("raw", "bucket"),
             "loop_end_bases must be between 0 and 10": 0 <= self.loop_end_bases <= 10,
             "target_len must be >= 1": self.target_len >= 1,

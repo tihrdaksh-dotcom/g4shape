@@ -11,7 +11,7 @@ from g4shape.lightning.base import LitG4Model
 from g4shape.lightning.build import build_lit_model
 from g4shape.lightning.regression_module import LitRegressionModel
 
-KW = dict(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16, global_encoder_kwargs={"num_radii": 2})
+KW = dict(node_dim=6, edge_dim=4, hidden_dim=16)
 HOOKS = {"__init__", "target", "loss", "postprocess", "g4_labels", "epoch_metrics"}
 
 
@@ -23,7 +23,6 @@ def _data(n=40):
         d = Data(x=torch.randn(k, 6, generator=g), edge_index=torch.randint(0, k, (2, 3 * k), generator=g),
                  edge_attr=torch.randn(3 * k, 4, generator=g),
                  y=torch.tensor([60.0 if i % 4 == 0 else 10.0]) + torch.rand(1, generator=g))
-        d.global_features = torch.randn(1, 8, generator=g)
         out.append(d)
     return out
 
@@ -68,5 +67,5 @@ def test_trainer_predict_and_hparams():
     assert len(out) == 2 and out[0]["prediction"].shape == out[0]["is_g4"].shape == (8,)
     hp = reg.hparams
     assert hp["y_mean"] == 25.0 and hp["label_threshold"] == 35.0 and "threshold_grid" in hp
-    assert not {"graph_encoder", "global_encoder", "fusion", "classifier"} & set(hp)
-    assert hp["architecture"]["global_encoder"] == "topo_curve"
+    assert not {"graph_encoder", "classifier"} & set(hp)
+    assert hp["architecture"]["graph_encoder"] == "diffusion_gat"

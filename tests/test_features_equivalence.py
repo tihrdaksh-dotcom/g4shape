@@ -1,17 +1,11 @@
-"""Code-array feature extractors: graph == brute-force reference; topology == the K-mer\ntopology paper's reference code (Hozumi & Wei 2024) on the same radius grid."""
-
-import contextlib
-import io
+"""Code-array feature extractor: graph == brute-force reference."""
 
 import numpy as np
 import pytest
-from KmerTopology._compute_topology import compute_filtration_topology
-from KmerTopology.kmer_topology import KmerTopology
 
-from g4shape.features.config import G3_4MERS, FeatureConfig
+from g4shape.features.config import FeatureConfig
 from g4shape.features.g_run_graph import edge_feature_names, extract_graph, node_feature_names
 from g4shape.features.sequence import decode, encode
-from g4shape.features.topology import extract_topology, topology_dim, topology_feature_names
 
 
 def normalize_sequence(seq: str) -> str:
@@ -77,61 +71,6 @@ def test_graph_matches_reference(seq):
         np.testing.assert_allclose(new["edge_features"], np.array(feats, np.float32), atol=1e-6)
 
 
-# ---- K-mer topology: src.features.topology wraps the authors' KmerTopology package
-
-
-def _brute_positions(s, cloud):
-    """1-based starts of every k-mer of the cloud, by plain string scanning."""
-    pos = set()
-    for km in cloud.split("|"):
-        pos |= {i + 1 for i in range(len(s) - len(km) + 1) if s[i:i + len(km)] == km}
-    return np.array(sorted(pos), dtype=float)
-
-
-_TOPO_CFGS = [FeatureConfig(),
-              FeatureConfig(topo_clouds=("A", "C", "G", "T"), max_step=20),
-              FeatureConfig(topo_clouds=("GG", "GAGG|GGAG|GGGA|AGGG", "G|GG"), step_size=3.0, max_step=12)]
-
-
-@pytest.mark.parametrize("cfg", _TOPO_CFGS, ids=["default", "1mers", "unions_step3"])
-@pytest.mark.parametrize("seq", _sequences())
-def test_topology_wraps_package(seq, cfg, capsys):
-    new = extract_topology(encode(seq), cfg)
-    assert capsys.readouterr().out == ""  # the package's "not valid dna" prints are silenced
-    assert new.dtype == np.float32
-    assert new.shape == (topology_dim(cfg),) == (len(topology_feature_names(cfg)),)
-    s = normalize_sequence(seq)
-    curves = [compute_filtration_topology(_brute_positions(s, c), cfg.step_size, cfg.max_step)
-              for c in cfg.topo_clouds]
-    ref = np.concatenate([b for b, _ in curves] + [e for _, e in curves])
-    np.testing.assert_array_equal(new, ref.astype(np.float32))
-    if cfg.topo_clouds == ("A", "C", "G", "T"):  # all 1-mers == the package's KmerTopology
-        with contextlib.redirect_stdout(io.StringIO()):
-            pkg = np.concatenate(KmerTopology(s, 1, cfg.step_size, cfg.max_step))
-        np.testing.assert_array_equal(new, pkg.astype(np.float32))
-
-
 def test_decode_roundtrip():
     for seq in _sequences():
         assert decode(encode(seq)) == normalize_sequence(seq)
-
-
-def test_topology_default_layout():
-    cfg = FeatureConfig()
-    assert topology_dim(cfg) == 7 * 2 * 20 == 280
-    assert cfg.topo_clouds[6] == G3_4MERS and len(G3_4MERS.split("|")) == 12
-    assert all(km.count("G") == 3 and len(km) == 4 for km in G3_4MERS.split("|"))
-    names = topology_feature_names(cfg)
-    assert names[0] == "betti_A_r0.00" and names[140] == "eigmin_A_r0.00"
-    v = extract_topology(encode("GGGAGGGTGGG"), cfg).reshape(2, 7, 20)  # [betti|eigmin] x 7 clouds x radius
-    # G at 1-3, 5-7, 9-11 (1-based) -> 9 points; consecutive gaps 1,1,2,1,1,2,1,1:
-    # r=0: 9 isolated G's; r=1.05: the 3 G-runs; r>=2.1: one cluster (1-nt loops bridged)
-    np.testing.assert_array_equal(v[0, 2, :4], [9, 3, 1, 1])
-    assert v[1, 2, 0] == 0 and v[1, 2, 1] > 0
-    np.testing.assert_array_equal(v[0, 0, :2], [1, 1])  # a single A -> Betti 1 at every radius
-    np.testing.assert_array_equal(v[:, 1], 0)  # no C -> all-zero C curves
-    # GG starts 1,2,5,6,9,10: r=0 six points; r=1.05 the 3 runs; GG gap across a 1-nt loop is 3
-    np.testing.assert_array_equal(v[0, 4, :4], [6, 3, 3, 1])
-    # every 4-mer start 1..8 has exactly 3 G's (GGGA GGAG GAGG AGGG GGGT GGTG GTGG TGGG):
-    # 8 consecutive starts -> r=0: 8 points, r>=1.05: one cluster
-    np.testing.assert_array_equal(v[0, 6, :3], [8, 1, 1])

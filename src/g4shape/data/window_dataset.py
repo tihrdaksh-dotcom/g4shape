@@ -1,12 +1,12 @@
 """PyG dataset over the G4-seq row index: each sample is a genome window, featurized on demand.
 
 ``get(i)``: index row -> genome window (``flank + 15 + flank`` nt) -> ``featurize``
-(``src.data.featurize``: G-run graph + topology vector) -> ``Data`` + target and metadata.
+(``src.data.featurize``: the G-run graph) -> ``Data`` + target and metadata.
 Nothing but the genome codes and the 10-byte index rows lives on disk, the work happens
 inside DataLoader workers, and the per-sample memory is the sample itself.
 
 The returned ``Data`` carries the ``featurize`` fields (``x``, ``edge_index``,
-``edge_attr``, ``global_features`` = topology, ``had_graph``) plus ``y`` -- the float
+``edge_attr``, ``had_graph``) plus ``y`` -- the float
 mismatch score (regression), not a class id -- and ``chrom``, ``start``, ``strand``,
 ``split``; on a weighted index split also ``sample_weight`` (the loss weight of the row).
 
@@ -48,7 +48,6 @@ class G4WindowDataset(PyGDataset):
         feature_config: Optional[FeatureConfig] = None,
         rows: Optional[np.ndarray] = None,
         reverse_strand: Optional[str] = "+",
-        use_topology: bool = True,
         transform=None,
     ):
         super().__init__(root=None, transform=transform)
@@ -59,11 +58,9 @@ class G4WindowDataset(PyGDataset):
         self.cfg = feature_config or FeatureConfig()
         self.rows = None if rows is None else np.asarray(rows, dtype=np.int64)
         self._reverse_sign = None if reverse_strand is None else STRAND_SIGN[reverse_strand]
-        self.use_topology = use_topology
         self.dims = feature_dims(self.cfg)
         self.node_feature_dim = self.dims["node_dim"]
         self.edge_feature_dim = self.dims["edge_dim"]
-        self.topology_dim = self.dims["global_dim"]
 
     def len(self) -> int:
         return len(self.index) if self.rows is None else int(self.rows.size)
@@ -74,7 +71,7 @@ class G4WindowDataset(PyGDataset):
         w = self.index.window
         codes = self.genome.window(chrom, start, start + w, self.flank,
                                    reverse=strand == self._reverse_sign)
-        data = featurize(codes, self.cfg, self.use_topology)
+        data = featurize(codes, self.cfg)
         data.y = torch.tensor([score], dtype=torch.float32)
         data.chrom = self.genome.names[chrom]
         data.start = start
@@ -96,8 +93,8 @@ def load_window_bundle(
     seed: int = 0,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    """train / val / test datasets + ``feature_dims`` (``node_dim``, ``edge_dim``,
-    ``global_dim``, ``global_layout``; pass them to ``src.lightning.build.build_lit_model``).
+    """train / val / test datasets + ``feature_dims`` (``node_dim``, ``edge_dim``; pass them
+    to ``src.lightning.build.build_lit_model``).
 
     ``max_train`` / ``max_val`` / ``max_test`` cap the number of rows of a split with a seeded
     random subset, the practical way to bound an epoch on genome-scale data (keep

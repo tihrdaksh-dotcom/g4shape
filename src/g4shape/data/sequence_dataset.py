@@ -35,7 +35,6 @@ class SequenceDataset(PyGDataset):
         y: Optional[Sequence[float]] = None,
         feature_config: Optional[FeatureConfig] = None,
         reverse_complement: bool = False,
-        use_topology: bool = True,
         transform=None,
     ):
         super().__init__(root=None, transform=transform)
@@ -47,7 +46,6 @@ class SequenceDataset(PyGDataset):
             raise ValueError("sequences, names and y must have the same length")
         self.cfg = feature_config or FeatureConfig()
         self.reverse_complement = reverse_complement
-        self.use_topology = use_topology
         self.dims = feature_dims(self.cfg)
 
     @classmethod
@@ -62,7 +60,7 @@ class SequenceDataset(PyGDataset):
         codes = encode(self.sequences[idx])
         if self.reverse_complement:
             codes = reverse_complement(codes)
-        data = featurize(codes, self.cfg, self.use_topology)
+        data = featurize(codes, self.cfg)
         if self.y is not None:
             data.y = torch.tensor([self.y[idx]], dtype=torch.float32)
         data.name = self.names[idx]

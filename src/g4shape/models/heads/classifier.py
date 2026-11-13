@@ -5,9 +5,8 @@ from g4shape.models.stages import Head
 
 
 class BinaryMLPClassifier(Head):
-    """``Linear(in→hidden) → ReLU → Dropout → Linear(hidden→1)``: one output per sample, a
-    logit for classification or the (standardised) score for regression (registry name
-    ``binary_mlp``).
+    """``Linear(in→hidden) → ReLU → Dropout → Linear(hidden→1)``: one output per sample, the
+    standardised score (registry name ``binary_mlp``).
 
     ``return_details=True`` also returns ``{"penultimate": [B, hidden]}``, the last
     representation before the output (post-ReLU, pre-dropout), useful for plotting.

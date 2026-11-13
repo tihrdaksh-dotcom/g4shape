@@ -27,7 +27,7 @@ def test_defaults_are_the_base_graph():
     assert a.keys() == b.keys()
     for k in a:
         assert np.array_equal(np.asarray(a[k]), np.asarray(b[k]))
-    d = featurize(codes, cfg, use_topology=False)
+    d = featurize(codes, cfg)
     assert torch.equal(d.x, torch.from_numpy(a["node_features"]))
     assert torch.equal(d.edge_attr, torch.from_numpy(a["edge_features"]))
 
@@ -42,7 +42,7 @@ def test_dims_match_names(cfg):
         assert g["edge_features"].shape[1] == len(graph_edge_feature_names(cfg))
         assert g["edge_index"].shape[1] == g["edge_features"].shape[0]
         assert np.isfinite(g["node_features"]).all() and np.isfinite(g["edge_features"]).all()
-        d = featurize(codes, cfg, use_topology=False)
+        d = featurize(codes, cfg)
         dims = feature_dims(cfg)
         assert d.x.shape[1] == dims["node_dim"] and d.edge_attr.shape[1] == dims["edge_dim"]
 
