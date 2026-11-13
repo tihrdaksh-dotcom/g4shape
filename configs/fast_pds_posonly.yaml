@@ -34,7 +34,6 @@ model:
   fusion_kwargs: {}
   classifier_kwargs: {}
 task:
-  task: regression
   label_threshold: 35.0
   y_mean: 2.6497314875100493
   y_std: 7.775820658477637

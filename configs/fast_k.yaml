@@ -37,7 +37,6 @@ model:
   fusion_kwargs: {}
   classifier_kwargs: {}
 task:
-  task: regression
   label_threshold: 25.0   # K+ G4 label: y > 25 (TransG4 p. 8892, G4mismatch; PDS: 35)
   y_mean: 1.1561764181906793
   y_std: 3.5258360107489124

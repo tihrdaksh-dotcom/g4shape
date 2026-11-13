@@ -93,7 +93,7 @@ def test_embeddings_end_to_end(data, tmp_path):
     bundle = load_window_bundle(d / "genome", d / "index")
     torch.manual_seed(0)
     model = build_lit_model(bundle["node_dim"], bundle["edge_dim"], bundle["global_dim"], hidden_dim=16,
-                            task="regression", y_mean=50.0, y_std=40.0,
+                            y_mean=50.0, y_std=40.0,
                             global_layout=bundle["global_layout"],
                             graph_encoder_kwargs={"num_layers": 1, "num_heads": 2})
     loader = DataLoader(bundle["test_dataset"], batch_size=4)

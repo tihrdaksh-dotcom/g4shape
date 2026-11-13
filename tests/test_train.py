@@ -20,7 +20,7 @@ FAST = ["model.hidden_dim=8", "model.graph_encoder_kwargs={num_layers: 1, num_he
 
 def test_defaults_are_transg4():
     cfg = ExperimentConfig()
-    assert cfg.task.task == "regression" and cfg.task.label_threshold == 35.0
+    assert cfg.task.label_threshold == 35.0
     assert cfg.data.flank == 100 and cfg.data.reverse_strand == "+"
     assert cfg.data.batch_size == 256 and cfg.trainer.max_epochs == 1 and cfg.trainer.seed == 42
     assert cfg.optim["eps"] == 1e-7 and cfg.optim["weight_decay"] == 0.0
@@ -43,7 +43,7 @@ def test_yaml_roundtrip_and_overrides(tmp_path):
     ({"model": {"hiden_dim": 8}}, "did you mean 'hidden_dim'"),
     ({"optim": {"learning_rate": 1}}, "unknown optimizer setting"),
     ({"features": {"edge_radus": 3}}, "unknown config key"),
-    ({"task": {"task": "ranking"}}, "task.task must be one of"),
+    ({"task": {"task": "regression"}}, "unknown key"),  # the classification task is gone
 ])
 def test_config_typos_raise(bad, match):
     with pytest.raises(ValueError, match=match):

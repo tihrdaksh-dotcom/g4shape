@@ -84,8 +84,7 @@ RESUME_OVERRIDABLE = ("resources.", "trainer.accelerator=", "trainer.devices=",
 
 
 def build_model(cfg: ExperimentConfig) -> LitG4Model:
-    """The Lightning model described by ``cfg`` (``task.y_mean/y_std`` must be resolved for
-    regression); the full config is stored in ``hparams["experiment"]``."""
+    """The Lightning model described by ``cfg`` (``task.y_mean/y_std`` must be resolved);; the full config is stored in ``hparams["experiment"]``."""
     m, t = cfg.model, cfg.task
     model = build_lit_model(
         **feature_dims(cfg.features),
@@ -94,7 +93,7 @@ def build_model(cfg: ExperimentConfig) -> LitG4Model:
         fusion=m.fusion, classifier=m.classifier,
         graph_encoder_kwargs=m.graph_encoder_kwargs, global_encoder_kwargs=m.global_encoder_kwargs,
         fusion_kwargs=m.fusion_kwargs, classifier_kwargs=m.classifier_kwargs,
-        task=t.task, y_mean=t.y_mean if t.y_mean is not None else 0.0,
+        y_mean=t.y_mean if t.y_mean is not None else 0.0,
         y_std=t.y_std if t.y_std is not None else 1.0,
         label_threshold=t.label_threshold, threshold_grid=t.threshold_grid,
         aux_g4_weight=t.aux_g4_weight, aux_g4_pos_weight=t.aux_g4_pos_weight,
@@ -105,9 +104,9 @@ def build_model(cfg: ExperimentConfig) -> LitG4Model:
 
 
 def _resolve_target_stats(cfg: ExperimentConfig) -> ExperimentConfig:
-    """Fill ``task.y_mean/y_std`` from the train split (regression only, when unset)."""
+    """Fill ``task.y_mean/y_std`` from the train split (when unset)."""
     t = cfg.task
-    if t.task != "regression" or (t.y_mean is not None and t.y_std is not None):
+    if t.y_mean is not None and t.y_std is not None:
         return cfg
     mean, std = G4SeqIndex(cfg.data.index_dir, "train").score_stats()
     return cfg.with_overrides([f"task.y_mean={t.y_mean if t.y_mean is not None else mean}",
@@ -118,7 +117,7 @@ def _run_name(cfg: ExperimentConfig) -> str:
     if cfg.trainer.run_name:
         name = cfg.trainer.run_name
     else:
-        name = (f"{time.strftime('%Y%m%d-%H%M%S')}_{cfg.task.task}_"
+        name = (f"{time.strftime('%Y%m%d-%H%M%S')}_"
                 f"{cfg.model.graph_encoder}-{cfg.model.global_encoder}")
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_")
 

@@ -142,15 +142,6 @@ def test_weighted_regression_loss():
                           ((w * (out - target) ** 2).sum() + 0.5 * (w * bce).sum()) / w.sum())
 
 
-def test_weighted_classification_loss():
-    clf = _lit(task="classification")
-    out, target = torch.tensor([-1.0, 2.0, 0.3]), torch.tensor([0.0, 1.0, 1.0])
-    w = torch.tensor([50.0, 1.0, 1.0])
-    ref = F.binary_cross_entropy_with_logits(out, target, reduction="none")
-    assert torch.allclose(clf.loss(out, target, torch.ones(3)), clf.loss(out, target))
-    assert torch.allclose(clf.loss(out, target, w), (w * ref).sum() / w.sum())
-
-
 def test_train_step_uses_sample_weight(data, subset):
     """The training step passes ``batch.sample_weight`` to the loss."""
     from g4shape.data.window_dataset import load_window_bundle
