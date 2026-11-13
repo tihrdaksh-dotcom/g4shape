@@ -10,7 +10,6 @@ from torch_geometric.data import Batch
 from g4shape.config import ExperimentConfig
 from g4shape.data.featurize import featurize
 from g4shape.features.sequence import encode
-from g4shape.models.graph_encoders.anchor_gat import AnchorDiffusionGATEncoder
 from g4shape.models.graph_encoders.diffusion_conv import DiffusionAttentionConv
 from g4shape.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
 from g4shape.train import build_model
@@ -116,9 +115,8 @@ def test_unknown_attention_raises():
         DiffusionAttentionConv(8, 8, attention="gatv3")
 
 
-@pytest.mark.parametrize("cls", [DiffusionGATEncoder, AnchorDiffusionGATEncoder])
-def test_encoders_pass_attention_through(cls):
-    enc = cls(node_dim=9, edge_dim=5, hidden_dim=16, attention="gatv2", attention_dim=4)
+def test_encoder_passes_attention_through():
+    enc = DiffusionGATEncoder(node_dim=9, edge_dim=5, hidden_dim=16, attention="gatv2", attention_dim=4)
     heads = [h for layer in enc.convs for h in layer.heads]
     assert heads and all(h.attention == "gatv2" and h.attn_src.out_features == 4 for h in heads)
 

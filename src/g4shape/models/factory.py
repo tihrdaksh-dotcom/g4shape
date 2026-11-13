@@ -28,7 +28,6 @@ from typing import Any, Mapping, Optional
 
 from g4shape.models.fusion.gated import GatedFusion
 from g4shape.models.global_encoders.topo_curve import TopologyCurveEncoder
-from g4shape.models.graph_encoders.anchor_gat import AnchorDiffusionGATEncoder
 from g4shape.models.graph_encoders.diffusion_gat import DiffusionGATEncoder
 from g4shape.models.heads.classifier import BinaryMLPClassifier
 from g4shape.models.stages import Fusion, GlobalEncoder, GraphEncoder, Head
@@ -39,7 +38,6 @@ __all__ = ["GRAPH_ENCODER_REGISTRY", "GLOBAL_ENCODER_REGISTRY", "FUSION_REGISTRY
 
 GRAPH_ENCODER_REGISTRY = {
     "diffusion_gat": DiffusionGATEncoder,
-    "anchor_gat": AnchorDiffusionGATEncoder,  # needs features.anchor_node=true
 }
 
 GLOBAL_ENCODER_REGISTRY = {

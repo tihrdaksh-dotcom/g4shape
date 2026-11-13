@@ -29,7 +29,6 @@ class FeatureConfig:
     Graph extras (graph_extras.py; all off by default = the original graph, bit for bit):
               position_encoding (signed offset of runs / loops from the target bin, RBF),
               gap_encoding ("raw" | "bucket": loop-length classes + gap / edge_radius),
-              anchor_node (virtual target-bin node linked to every run),
               onehot_context (one-hot of N nt each side of a run), loop_end_bases (one-hot
               of the first / last N loop bases); target_len (bin length, centred in the
               sequence), pos_rbf / pos_sigma (number / width in nt of the RBF centres).
@@ -44,7 +43,6 @@ class FeatureConfig:
     max_step: int = 20
     position_encoding: bool = False
     gap_encoding: str = "raw"
-    anchor_node: bool = False
     onehot_context: int = 0
     loop_end_bases: int = 0
     target_len: int = 15
