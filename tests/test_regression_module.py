@@ -79,17 +79,3 @@ def test_regression_tunes_threshold_on_val_and_reuses_it_on_test():
     assert float(model.detection_threshold) == thr and abs(res["test_g4_threshold"] - thr) < 1e-5
     b = next(iter(dl))
     assert torch.equal(model.predict_g4(b), model.predict(b) > thr)
-
-
-def test_aux_g4_loss_is_opt_in():
-    import torch
-    from g4shape.lightning.build import build_lit_model
-
-    kw = dict(node_dim=5, edge_dim=3, global_dim=8, hidden_dim=8,
-              global_encoder_kwargs={"num_radii": 2}, y_mean=1.0, y_std=4.0)
-    out = torch.tensor([0.0, 8.0, 9.0])
-    target = torch.tensor([0.0, 7.0, 10.0])   # z(35) = 8.5 -> last one is a G4
-    plain = build_lit_model(**kw)
-    aux = build_lit_model(**kw, aux_g4_weight=0.5, aux_g4_pos_weight=10.0)
-    assert torch.equal(plain.loss(out, target), torch.nn.functional.mse_loss(out, target))
-    assert aux.loss(out, target) > plain.loss(out, target)

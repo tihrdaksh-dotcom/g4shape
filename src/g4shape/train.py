@@ -96,7 +96,6 @@ def build_model(cfg: ExperimentConfig) -> LitG4Model:
         y_mean=t.y_mean if t.y_mean is not None else 0.0,
         y_std=t.y_std if t.y_std is not None else 1.0,
         label_threshold=t.label_threshold, threshold_grid=t.threshold_grid,
-        aux_g4_weight=t.aux_g4_weight, aux_g4_pos_weight=t.aux_g4_pos_weight,
         optim=cfg.optim,
     )
     model.hparams["experiment"] = cfg.to_dict()

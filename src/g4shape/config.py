@@ -71,8 +71,6 @@ class TaskConfig:
     y_std: Optional[float] = None
     threshold_grid: Any = None              # None: task default (TransG4 30.0..34.9 / 0.01..0.99);
                                             # a list, or {start, stop, step} (metrics.resolve_threshold_grid)
-    aux_g4_weight: float = 0.0              # regression: + w * BCE(G4) on the same output (0 = off)
-    aux_g4_pos_weight: float = 1.0
 
 
 @dataclass

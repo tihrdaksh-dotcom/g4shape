@@ -33,21 +33,15 @@ def build_lit_model(
     global_layout=None,
     label_threshold=G4_LABEL_THRESHOLD,
     threshold_grid=None,
-    aux_g4_weight=0.0,
-    aux_g4_pos_weight=1.0,
 ):
     """Score regression, as TransG4: MSE on the mismatch score, G4 calls by thresholding the
     prediction. ``global_layout``: ``load_window_bundle(...)["global_layout"]`` (topology
     ``{num_clouds, num_radii}``), given to the global encoder if it takes it (see
     ``build_components``). Component kwargs are checked: an unknown key raises.
     ``optim``: optimizer / lr-schedule settings over TransG4's defaults
-    (``src.lightning.optim.TRANSG4_OPTIM``), e.g. ``{"scheduler": "plateau"}``.
-    ``aux_g4_weight`` / ``aux_g4_pos_weight``: optional auxiliary G4 loss (regression only,
-    see ``LitRegressionModel``; 0 = off)."""
+    (``src.lightning.optim.TRANSG4_OPTIM``), e.g. ``{"scheduler": "plateau"}``."""
     threshold_grid = resolve_threshold_grid(threshold_grid)  # list or {start, stop, step}
     extra = {} if threshold_grid is None else {"threshold_grid": threshold_grid}
-    if aux_g4_weight:
-        extra.update(aux_g4_weight=aux_g4_weight, aux_g4_pos_weight=aux_g4_pos_weight)
 
     graph_encoder_kwargs = dict(graph_encoder_kwargs or {})
     global_encoder_kwargs = dict(global_encoder_kwargs or {})
