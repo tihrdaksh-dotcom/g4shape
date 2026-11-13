@@ -6,8 +6,8 @@ from pathlib import Path
 
 import torch
 
-from g4shape.models.factory import build_components
-from g4shape.models.multimodel import MultiModalModel
+from g4shape.models.factory import build_classifier, build_graph_encoder
+from g4shape.models.graph_model import GraphModel
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,12 +26,11 @@ def test_models_do_not_import_lightning():
 def test_bare_network_matches_lit_model():
     from g4shape.lightning.build import build_lit_model
 
-    kw = dict(node_dim=5, edge_dim=3, global_dim=8, hidden_dim=16,
-              global_encoder_kwargs={"num_radii": 2})
     torch.manual_seed(0)
-    net = MultiModalModel(**build_components(**kw))
+    net = GraphModel(build_graph_encoder(node_dim=5, edge_dim=3, hidden_dim=16),
+                     build_classifier(in_dim=16, hidden_dim=16))
     torch.manual_seed(0)
-    lit = build_lit_model(**kw)
+    lit = build_lit_model(node_dim=5, edge_dim=3, hidden_dim=16)
     a, b = net.state_dict(), lit.model.state_dict()
     assert a.keys() == b.keys() and all(torch.equal(a[k], b[k]) for k in a)
 

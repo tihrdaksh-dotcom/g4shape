@@ -52,7 +52,8 @@ def test_reverse_complement_option():
 
 def test_score_arbitrary_sequences_with_a_model():
     ds = SequenceDataset(SEQS, feature_config=CFG)
-    model = build_lit_model(hidden_dim=16, y_mean=10.0, y_std=5.0, **ds.dims,
+    model = build_lit_model(ds.dims["node_dim"], ds.dims["edge_dim"], hidden_dim=16,
+                            y_mean=10.0, y_std=5.0,
                             graph_encoder_kwargs={"num_layers": 1, "num_heads": 2})
     tr = pl.Trainer(accelerator="cpu", logger=False, enable_progress_bar=False, enable_model_summary=False)
     out = tr.predict(model, DataLoader(ds, batch_size=2))

@@ -55,12 +55,8 @@ class ModelConfig:
     hidden_dim: int = 64
     dropout: float = 0.2
     graph_encoder: str = DEFAULTS["graph_encoder"]
-    global_encoder: str = DEFAULTS["global_encoder"]
-    fusion: str = DEFAULTS["fusion"]
     classifier: str = DEFAULTS["classifier"]
     graph_encoder_kwargs: dict = field(default_factory=dict)
-    global_encoder_kwargs: dict = field(default_factory=dict)
-    fusion_kwargs: dict = field(default_factory=dict)
     classifier_kwargs: dict = field(default_factory=dict)
 
 
@@ -85,7 +81,7 @@ class TrainerConfig:
     log_every_n_steps: int = 50
     checkpoint_every_minutes: float = 30.0  # resume.ckpt this often (<= 0: only when stopped)
     out_dir: str = "runs"
-    run_name: Optional[str] = None          # None: <timestamp>_<graph>-<global>
+    run_name: Optional[str] = None          # None: <timestamp>_<graph encoder>
 
 
 _SECTIONS = {"data": DataConfig, "model": ModelConfig, "task": TaskConfig, "trainer": TrainerConfig,

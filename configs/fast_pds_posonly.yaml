@@ -26,12 +26,8 @@ model:
   hidden_dim: 64
   dropout: 0.2
   graph_encoder: diffusion_gat
-  global_encoder: topo_curve
-  fusion: gated
   classifier: binary_mlp
   graph_encoder_kwargs: {}   # EXP (ablated: baseline GATv1 attention)
-  global_encoder_kwargs: {}
-  fusion_kwargs: {}
   classifier_kwargs: {}
 task:
   label_threshold: 35.0

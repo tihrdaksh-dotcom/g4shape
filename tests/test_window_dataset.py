@@ -92,29 +92,26 @@ def test_embeddings_end_to_end(data, tmp_path):
     d, _, _ = data
     bundle = load_window_bundle(d / "genome", d / "index")
     torch.manual_seed(0)
-    model = build_lit_model(bundle["node_dim"], bundle["edge_dim"], bundle["global_dim"], hidden_dim=16,
+    model = build_lit_model(bundle["node_dim"], bundle["edge_dim"], hidden_dim=16,
                             y_mean=50.0, y_std=40.0,
-                            global_layout=bundle["global_layout"],
                             graph_encoder_kwargs={"num_layers": 1, "num_heads": 2})
     loader = DataLoader(bundle["test_dataset"], batch_size=4)
     emb = collect_embeddings(model, loader)
     n = len(bundle["test_dataset"])
-    for k in ("x_graph", "x_global", "gate", "fused", "penultimate"):
+    for k in ("x_graph", "penultimate"):
         assert emb[k].shape == (n, 16) and np.isfinite(emb[k]).all(), k
-    assert emb["clouds"].shape == (n, 7, 32)
-    assert emb["gate_mean"].shape == emb["y"].shape == emb["prediction"].shape == (n,)
-    assert ((emb["gate"] > 0) & (emb["gate"] < 1)).all()
+    assert emb["y"].shape == emb["prediction"].shape == (n,)
     np.testing.assert_allclose(emb["prediction"], emb["output"] * 40.0 + 50.0, rtol=1e-5)
     assert set(emb["chrom"]) == {"chr1"} and set(emb["strand"]) <= {"+", "-"}
     assert emb["num_nodes"].shape == (n,) and model.training  # mode restored
 
-    Y, info = project(emb["fused"], "pca")
+    Y, info = project(emb["x_graph"], "pca")
     assert Y.shape == (n, 2) and 0 < info["explained_variance_ratio"].sum() <= 1 + 1e-9
-    Y, _ = project(emb["clouds"], "tsne", perplexity=3)
+    Y, _ = project(emb["penultimate"], "tsne", perplexity=3)
     assert Y.shape == (n, 2)
     save_embeddings(tmp_path / "e.npz", emb)
     back = load_embeddings(tmp_path / "e.npz")
-    np.testing.assert_array_equal(back["fused"], emb["fused"])
+    np.testing.assert_array_equal(back["x_graph"], emb["x_graph"])
 
 
 def test_dataset_item_is_featurize_of_its_window(data):

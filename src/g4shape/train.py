@@ -85,14 +85,12 @@ RESUME_OVERRIDABLE = ("resources.", "trainer.accelerator=", "trainer.devices=",
 
 def build_model(cfg: ExperimentConfig) -> LitG4Model:
     """The Lightning model described by ``cfg`` (``task.y_mean/y_std`` must be resolved);; the full config is stored in ``hparams["experiment"]``."""
-    m, t = cfg.model, cfg.task
+    m, t, dims = cfg.model, cfg.task, feature_dims(cfg.features)
     model = build_lit_model(
-        **feature_dims(cfg.features),
+        node_dim=dims["node_dim"], edge_dim=dims["edge_dim"],
         hidden_dim=m.hidden_dim, dropout=m.dropout,
-        graph_encoder=m.graph_encoder, global_encoder=m.global_encoder,
-        fusion=m.fusion, classifier=m.classifier,
-        graph_encoder_kwargs=m.graph_encoder_kwargs, global_encoder_kwargs=m.global_encoder_kwargs,
-        fusion_kwargs=m.fusion_kwargs, classifier_kwargs=m.classifier_kwargs,
+        graph_encoder=m.graph_encoder, classifier=m.classifier,
+        graph_encoder_kwargs=m.graph_encoder_kwargs, classifier_kwargs=m.classifier_kwargs,
         y_mean=t.y_mean if t.y_mean is not None else 0.0,
         y_std=t.y_std if t.y_std is not None else 1.0,
         label_threshold=t.label_threshold, threshold_grid=t.threshold_grid,
@@ -117,7 +115,7 @@ def _run_name(cfg: ExperimentConfig) -> str:
         name = cfg.trainer.run_name
     else:
         name = (f"{time.strftime('%Y%m%d-%H%M%S')}_"
-                f"{cfg.model.graph_encoder}-{cfg.model.global_encoder}")
+                f"{cfg.model.graph_encoder}")
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_")
 
 

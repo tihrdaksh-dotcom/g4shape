@@ -16,9 +16,11 @@ LAYOUT = {"num_clouds": 2, "num_radii": 2}
 
 
 def test_defaults_defined_once():
-    for fn in (build_components, build_lit_model):
-        sig = inspect.signature(fn).parameters
-        assert {k: sig[k].default for k in DEFAULTS} == DEFAULTS, fn.__name__
+    sig = inspect.signature(build_components).parameters
+    assert {k: sig[k].default for k in DEFAULTS} == DEFAULTS
+    sig = inspect.signature(build_lit_model).parameters
+    assert {k: sig[k].default for k in ("graph_encoder", "classifier")} == \
+        {k: DEFAULTS[k] for k in ("graph_encoder", "classifier")}
     regs = {"graph_encoder": GRAPH_ENCODER_REGISTRY, "global_encoder": GLOBAL_ENCODER_REGISTRY,
             "fusion": FUSION_REGISTRY, "classifier": CLASSIFIER_REGISTRY}
     assert all(DEFAULTS[k] in regs[k] for k in DEFAULTS)
@@ -31,7 +33,7 @@ def test_kwarg_typo_raises_with_suggestion():
     with pytest.raises(TypeError, match=r"'num_head'.*did you mean 'num_heads'"):
         build_components(**DIMS, global_layout=LAYOUT, graph_encoder_kwargs={"num_head": 8})
     with pytest.raises(TypeError, match=r"'layer_droput'.*did you mean 'layer_dropout'"):
-        build_lit_model(**DIMS, global_layout=LAYOUT, graph_encoder_kwargs={"layer_droput": 0.3})
+        build_lit_model(node_dim=6, edge_dim=4, hidden_dim=16, graph_encoder_kwargs={"layer_droput": 0.3})
     with pytest.raises(TypeError, match="norm_input"):
         build_components(**DIMS, global_layout=LAYOUT, fusion_kwargs={"norm_input": False})
 
@@ -74,9 +76,9 @@ def test_dropout_and_fixed_args_wired():
 
 
 def test_lit_model_records_the_applied_architecture():
-    m = build_lit_model(**DIMS, global_layout=LAYOUT, graph_encoder_kwargs={"num_heads": 2})
+    m = build_lit_model(node_dim=6, edge_dim=4, hidden_dim=16, graph_encoder_kwargs={"num_heads": 2})
     arch = m.hparams["architecture"]
-    assert "branch" not in arch and arch["global_layout"] == LAYOUT
+    assert set(arch) == {"graph_encoder", "classifier", "graph_encoder_kwargs", "classifier_kwargs"}
     assert arch["graph_encoder_kwargs"] == {"num_heads": 2}
     assert arch["graph_encoder"] == DEFAULTS["graph_encoder"]
     assert torch.isfinite(next(m.parameters())).all()

@@ -29,12 +29,8 @@ model:
   hidden_dim: 64
   dropout: 0.2
   graph_encoder: diffusion_gat
-  global_encoder: topo_curve
-  fusion: gated
   classifier: binary_mlp
   graph_encoder_kwargs: {}
-  global_encoder_kwargs: {}
-  fusion_kwargs: {}
   classifier_kwargs: {}
 task:
   label_threshold: 25.0   # K+ G4 label: y > 25 (TransG4 p. 8892, G4mismatch; PDS: 35)

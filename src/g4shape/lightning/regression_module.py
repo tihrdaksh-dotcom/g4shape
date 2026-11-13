@@ -35,8 +35,6 @@ class LitRegressionModel(LitG4Model):
     def __init__(
         self,
         graph_encoder,
-        global_encoder,
-        fusion,
         classifier,
         optim: Optional[Mapping[str, Any]] = None,
         y_mean: float = 0.0,
@@ -44,7 +42,7 @@ class LitRegressionModel(LitG4Model):
         label_threshold: Optional[float] = G4_LABEL_THRESHOLD,
         threshold_grid: Sequence[float] = TRANSG4_THRESHOLD_GRID,
     ):
-        super().__init__(graph_encoder, global_encoder, fusion, classifier, optim,
+        super().__init__(graph_encoder, classifier, optim,
                          label_threshold, threshold_grid,
                          initial_threshold=label_threshold or 0.0)  # until tuned: label threshold
         self.save_hyperparameters(ignore=COMPONENTS)

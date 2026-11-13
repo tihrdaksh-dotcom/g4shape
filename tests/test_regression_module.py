@@ -19,7 +19,7 @@ def test_metrics_match_numpy():
     assert abs(m["r2"] - (1 - ((p - y) ** 2).sum() / ((y - y.mean()) ** 2).sum())) < 1e-9
 
 
-def _data(n=40, dn=6, de=4, dg=8):
+def _data(n=40, dn=6, de=4):
     g = torch.Generator().manual_seed(0)
     out = []
     for _ in range(n):
@@ -27,15 +27,12 @@ def _data(n=40, dn=6, de=4, dg=8):
         e = torch.randint(0, k, (2, 3 * k), generator=g)
         d = Data(x=torch.randn(k, dn, generator=g), edge_index=e, edge_attr=torch.randn(3 * k, de, generator=g),
                  y=torch.rand(1, generator=g) * 50)
-        d.global_features = torch.randn(1, dg, generator=g)
         out.append(d)
     return out
 
 
 def test_regression_fit_and_test_run():
-    model = build_lit_model(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16,
-                            y_mean=25.0, y_std=14.0,
-                            global_encoder_kwargs={"num_radii": 2})  # 2 clouds x 2 curves x 2 radii
+    model = build_lit_model(node_dim=6, edge_dim=4, hidden_dim=16, y_mean=25.0, y_std=14.0)
     dl = DataLoader(_data(), batch_size=8)
     tr = pl.Trainer(max_epochs=2, accelerator="cpu", logger=False, enable_checkpointing=False,
                     enable_progress_bar=False, enable_model_summary=False)
@@ -66,8 +63,7 @@ def test_detection_metrics_match_sklearn():
 
 
 def test_regression_tunes_threshold_on_val_and_reuses_it_on_test():
-    model = build_lit_model(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16,
-                            y_mean=25.0, y_std=14.0, global_layout={"num_clouds": 2, "num_radii": 2})
+    model = build_lit_model(node_dim=6, edge_dim=4, hidden_dim=16, y_mean=25.0, y_std=14.0)
     dl = DataLoader(_data(), batch_size=8)
     tr = pl.Trainer(max_epochs=1, accelerator="cpu", logger=False, enable_checkpointing=False,
                     enable_progress_bar=False, enable_model_summary=False)
