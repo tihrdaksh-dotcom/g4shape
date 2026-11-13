@@ -11,8 +11,7 @@ from g4shape.features.graph_extras import (extract_graph_full, graph_edge_featur
                                        graph_node_feature_names, target_bin)
 from g4shape.features.sequence import encode
 
-ALL = FeatureConfig(position_encoding=True, gap_encoding="bucket", onehot_context=6,
-                    loop_end_bases=2)
+ALL = FeatureConfig(position_encoding=True, gap_encoding="bucket", loop_end_bases=2)
 
 
 def _window(seed=0, n=215, motif="GGGTTAGGGTTAGGGTTAGGG", at=80):
@@ -35,7 +34,6 @@ def test_defaults_are_the_base_graph():
 
 @pytest.mark.parametrize("cfg", [
     FeatureConfig(position_encoding=True), FeatureConfig(gap_encoding="bucket"),
-    FeatureConfig(onehot_context=4),
     FeatureConfig(loop_end_bases=3), ALL])
 def test_dims_match_names(cfg):
     for codes in (_window(), encode("A" * 215), encode("GG" + "A" * 213)):
@@ -74,18 +72,11 @@ def test_gap_buckets_and_scaled_gap():
     assert e[:, [n.startswith("gap_bucket") for n in names]].sum(1).tolist() == [1, 1]
 
 
-def test_onehot_context_and_loop_ends():
-    cfg = FeatureConfig(onehot_context=2, loop_end_bases=1)
+def test_loop_end_bases():
+    cfg = FeatureConfig(loop_end_bases=1)
     codes = encode("AC" + "GGG" + "TA" + "GGG" + "C" * 206)
     g = extract_graph_full(codes, cfg)
-    nn_ = graph_node_feature_names(cfg)
-    x = g["node_features"]
-    assert x[0, nn_.index("ctx_up2_A")] == 1 and x[0, nn_.index("ctx_up1_C")] == 1
-    assert x[0, nn_.index("ctx_down1_T")] == 1 and x[0, nn_.index("ctx_down2_A")] == 1
     en = graph_edge_feature_names(cfg)
     e = g["edge_features"]
     assert (e[:, en.index("loop_first1_T")] == 1).all() and (e[:, en.index("loop_last1_A")] == 1).all()
-    # run at the sequence start: upstream context outside the sequence = 0.25
-    g2 = extract_graph_full(encode("GGG" + "A" * 212), cfg)
-    assert np.allclose(g2["node_features"][0, nn_.index("ctx_up1_A"):nn_.index("ctx_up1_A") + 4], .25)
 

@@ -16,9 +16,6 @@ motif lifts the bin's score when it sits 0-50 nt 5' of the bin and not when it s
 * ``gap_encoding="bucket"`` -- the raw ``gap`` column becomes gap / edge_radius (it dominated
   the attention logits at its raw scale) and loop-length classes 1, 2, 3, 4-5, 6-7, 8-12,
   13-20, 21-30, >30 are appended (one-hot), so each head can learn a bias per loop class.
-* ``onehot_context`` = K -- one-hot of the K nt before and after each run (N or outside the
-  sequence = 0.25 each, as TransG4 encodes N); the first node layer is then a set of
-  learned position-specific motifs around the run.
 * ``loop_end_bases`` = K -- one-hot of the first and last K bases of each loop (0 past the
   loop end).
 """
@@ -43,8 +40,7 @@ GAP_BUCKETS: Tuple[Tuple[str, int], ...] = (("1", 1), ("2", 2), ("3", 3), ("4_5"
 
 
 def uses_extras(cfg: FeatureConfig) -> bool:
-    return bool(cfg.position_encoding or cfg.gap_encoding != "raw"
-                or cfg.onehot_context or cfg.loop_end_bases)
+    return bool(cfg.position_encoding or cfg.gap_encoding != "raw" or cfg.loop_end_bases)
 
 
 def target_bin(n: int, cfg: FeatureConfig) -> Tuple[int, int, float]:
@@ -89,9 +85,6 @@ def graph_node_feature_names(cfg: FeatureConfig) -> List[str]:
     names = list(node_feature_names(cfg))
     if cfg.position_encoding:
         names += _pos_names("node", cfg) + ["in_bin", "bin_overlap"]
-    k = cfg.onehot_context
-    names += [f"ctx_up{i}_{b}" for i in range(k, 0, -1) for b in _BASES]
-    names += [f"ctx_down{i}_{b}" for i in range(1, k + 1) for b in _BASES]
     return names
 
 
@@ -127,10 +120,6 @@ def extract_graph_full(codes: np.ndarray, cfg: FeatureConfig) -> Dict[str, Any]:
         overlap = np.clip(np.minimum(ends, hi) - np.maximum(starts, lo), 0, None)
         blocks += [_position_block(off, cfg, n), (overlap > 0)[:, None],
                    (overlap / cfg.target_len)[:, None]]
-    k = cfg.onehot_context
-    if k:
-        for pos in [starts - i for i in range(k, 0, -1)] + [ends + i for i in range(k)]:
-            blocks.append(_onehot_at(codes, pos, (pos >= 0) & (pos < n), 0.25))
     x = np.concatenate([np.asarray(b, np.float32) for b in blocks], axis=1)
 
     # ---- edges (pair k = rows 2k (i->j, i < j) and 2k+1 (j->i)) ----

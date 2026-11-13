@@ -11,7 +11,7 @@ through either path gets exactly the same features.
 Empty graph: a sequence without any qualifying G-run gets one all-zero node and no edges,
 so it still occupies exactly one row of the batch (``had_graph=False`` marks it).
 
-Optional graph extras (signed position, loop-length buckets, one-hot context;
+Optional graph extras (signed position, loop-length buckets, loop-end bases;
 ``FeatureConfig`` flags, all off by default) come from ``src.features.graph_extras``.
 
 Feature scale depends on the sequence length (the topology counts, the edge gaps), so a
