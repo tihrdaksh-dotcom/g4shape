@@ -6,7 +6,7 @@ from pathlib import Path
 
 import torch
 
-from g4shape.models.factory import build_classifier, build_graph_encoder
+from g4shape.models.factory import build_components
 from g4shape.models.graph_model import GraphModel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,8 +27,7 @@ def test_bare_network_matches_lit_model():
     from g4shape.lightning.build import build_lit_model
 
     torch.manual_seed(0)
-    net = GraphModel(build_graph_encoder(node_dim=5, edge_dim=3, hidden_dim=16),
-                     build_classifier(in_dim=16, hidden_dim=16))
+    net = GraphModel(**build_components(node_dim=5, edge_dim=3, hidden_dim=16))
     torch.manual_seed(0)
     lit = build_lit_model(node_dim=5, edge_dim=3, hidden_dim=16)
     a, b = net.state_dict(), lit.model.state_dict()

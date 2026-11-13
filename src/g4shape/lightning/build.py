@@ -8,7 +8,7 @@ downwards (``lightning`` -> ``models``), never the reverse.
 
 from g4shape.lightning.metrics import G4_LABEL_THRESHOLD, resolve_threshold_grid
 from g4shape.lightning.regression_module import LitRegressionModel
-from g4shape.models.factory import DEFAULTS, build_classifier, build_graph_encoder
+from g4shape.models.factory import DEFAULTS, build_components
 
 __all__ = ["build_lit_model"]
 
@@ -37,13 +37,12 @@ def build_lit_model(
     graph_encoder_kwargs = dict(graph_encoder_kwargs or {})
     classifier_kwargs = dict(classifier_kwargs or {})
 
-    model = LitRegressionModel(
-        graph_encoder=build_graph_encoder(graph_encoder, node_dim=node_dim, edge_dim=edge_dim,
-                                          hidden_dim=hidden_dim, dropout=dropout,
-                                          **graph_encoder_kwargs),
-        classifier=build_classifier(classifier, in_dim=hidden_dim, hidden_dim=hidden_dim,
-                                    dropout=dropout, **classifier_kwargs),
-        optim=optim, y_mean=y_mean, y_std=y_std, label_threshold=label_threshold, **extra)
+    components = build_components(
+        node_dim=node_dim, edge_dim=edge_dim, hidden_dim=hidden_dim, dropout=dropout,
+        graph_encoder=graph_encoder, classifier=classifier,
+        graph_encoder_kwargs=graph_encoder_kwargs, classifier_kwargs=classifier_kwargs)
+    model = LitRegressionModel(**components, optim=optim, y_mean=y_mean, y_std=y_std,
+                               label_threshold=label_threshold, **extra)
 
     model.hparams.update(
         {
