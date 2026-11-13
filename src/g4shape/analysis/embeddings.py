@@ -3,19 +3,17 @@
 Typical use::
 
     emb = collect_embeddings(lit_model, test_loader, max_batches=200)
-    Y, info = project(emb["fused"], method="pca")          # or "tsne" / "umap"
-    plot_projection(Y, emb["y"], title=f"fused, PCA {info['explained_variance_ratio']}")
+    Y, info = project(emb["x_graph"], method="pca")        # or "tsne" / "umap"
+    plot_projection(Y, emb["y"], title=f"x_graph, PCA {info['explained_variance_ratio']}")
     save_embeddings("runs/x/test_embeddings.npz", emb)
 
 ``collect_embeddings`` returns numpy arrays aligned on the sample axis:
 
-* model stages: ``x_graph``, ``x_global`` [N, H] (branch embeddings), ``gate`` [N, H]
-  (topology weight per fused dimension), ``gate_mean`` [N] (0 = graph only, 1 = topology
-  only), ``fused`` [N, H], ``penultimate`` [N, H_head], ``clouds`` [N, C, d] (topo_curve
-  per-cloud vectors, when available);
+* model stages: ``x_graph`` [N, H] (graph embedding, the encoder's weighted-sum readout),
+  ``penultimate`` [N, H_head] (last hidden layer of the head);
 * outputs: ``output`` [N] (raw head output), ``prediction`` [N] (``model.postprocess``:
-  score in original units for a regression model, probability for a classifier; equal
-  to ``output`` for a bare ``MultiModalModel``, which does not know its task),
+  score in original units; equal to ``output`` for a bare ``GraphModel``, which does not
+  know the target scaling),
   ``is_g4`` [N] (Lightning models only: prediction > ``detection_threshold``), ``y`` [N];
 * metadata when present on the batch: ``chrom``, ``start``, ``strand``, ``split``,
   ``had_graph``, and ``num_nodes`` [N] (graph size).
@@ -30,7 +28,7 @@ import torch
 
 __all__ = ["collect_embeddings", "project", "plot_projection", "save_embeddings", "load_embeddings"]
 
-_STAGES = ("x_graph", "x_global", "gate", "fused", "penultimate")
+_STAGES = ("x_graph", "penultimate")
 _META = ("chrom", "start", "strand", "split", "had_graph")
 
 
@@ -45,8 +43,7 @@ def collect_embeddings(model, loader: Iterable, max_batches: Optional[int] = Non
                        device: Optional[torch.device | str] = None) -> Dict[str, np.ndarray]:
     """Eval-mode pass over ``loader`` (PyG batches) with ``return_details=True``.
 
-    ``model``: a ``LitG4Model`` (``LitRegressionModel`` / ``LitClassificationModel``) or a
-    bare ``MultiModalModel``.
+    ``model``: a ``LitG4Model`` (``LitRegressionModel``) or a bare ``GraphModel``.
     """
     was_training = model.training
     model.eval()
@@ -70,10 +67,6 @@ def collect_embeddings(model, loader: Iterable, max_batches: Optional[int] = Non
             out = out.view(-1)
             for k in _STAGES:
                 add(k, det.get(k))
-            if det.get("gate") is not None:
-                add("gate_mean", det["gate"].mean(dim=1))
-            if isinstance(det.get("global"), dict) and "clouds" in det["global"]:
-                add("clouds", det["global"]["clouds"])
             add("output", out)
             pred = postprocess(out) if postprocess is not None else out
             add("prediction", pred)
@@ -126,7 +119,7 @@ def project(X: np.ndarray, method: str = "pca", n_components: int = 2, standardi
 def plot_projection(Y: np.ndarray, color: Optional[np.ndarray] = None, ax=None, title: str = "",
                     cmap: str = "viridis", s: float = 4.0, label: str = ""):
     """2-D scatter of a projection, coloured by ``color`` (e.g. ``emb["y"]``,
-    ``emb["gate_mean"]``, ``emb["prediction"]``). Returns the matplotlib Axes."""
+    ``emb["prediction"]``). Returns the matplotlib Axes."""
     import matplotlib.pyplot as plt
 
     if ax is None:
