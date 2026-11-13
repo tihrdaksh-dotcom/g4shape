@@ -1,0 +1,22 @@
+# Conda environment for g4shape: only the packages the code imports (no KmerTopology, gudhi
+# or ripser). Versions are the ones the test suite passes with.
+#   conda env create -f environment.yml && conda activate g4gnn && pip install -e .
+# torch from PyPI is the CUDA build on Linux; for a CPU-only machine install it first from
+# https://download.pytorch.org/whl/cpu.
+name: g4gnn
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - torch==2.14.1
+      - torch-geometric==2.8.0.post1
+      - pytorch-lightning==2.6.6
+      - numpy==2.4.6
+      - pandas==3.0.6
+      - scipy==1.17.1          # needed by scikit-learn
+      - scikit-learn==1.9.1    # t-SNE in analysis/embeddings.py, AUPRC checks in the tests
+      - matplotlib==3.11.2     # plot_projection in analysis/embeddings.py
+      - pyyaml==6.0.3
+      - pytest==9.1.1
