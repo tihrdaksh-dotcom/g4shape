@@ -3,7 +3,7 @@
     data:      where the genome store / G4-seq index live, window flank, row caps, loaders
     features:  ``FeatureConfig`` (G-run graph + topology)
     model:     stage names + per-stage kwargs (``src.models.factory``), width, dropout
-    task:      regression (default) | classification, target standardisation, G4 label
+    task:      target standardisation, G4 label, threshold grid
     optim:     optimizer / lr schedule overrides (``src.lightning.optim.TRANSG4_OPTIM``)
     trainer:   epochs, seed, device override, output directory
     resources: how much of a shared machine to use (free GPUs only, idle CPU share, niceness)
@@ -27,7 +27,6 @@ from typing import Any, Optional
 import yaml
 
 from g4shape.features.config import FeatureConfig
-from g4shape.lightning.build import TASKS
 from g4shape.lightning.optim import resolve_optim
 from g4shape.models.factory import DEFAULTS
 from g4shape.resources import ResourceConfig
@@ -67,14 +66,11 @@ class ModelConfig:
 
 @dataclass
 class TaskConfig:
-    task: str = "regression"                # TransG4
     label_threshold: Optional[float] = 35.0  # G4 = mismatch score > 35
     y_mean: Optional[float] = None          # None: computed from the train split
     y_std: Optional[float] = None
     threshold_grid: Any = None              # None: task default (TransG4 30.0..34.9 / 0.01..0.99);
                                             # a list, or {start, stop, step} (metrics.resolve_threshold_grid)
-    aux_g4_weight: float = 0.0              # regression: + w * BCE(G4) on the same output (0 = off)
-    aux_g4_pos_weight: float = 1.0
 
 
 @dataclass
@@ -89,7 +85,7 @@ class TrainerConfig:
     log_every_n_steps: int = 50
     checkpoint_every_minutes: float = 30.0  # resume.ckpt this often (<= 0: only when stopped)
     out_dir: str = "runs"
-    run_name: Optional[str] = None          # None: <timestamp>_<task>_<graph>-<global>
+    run_name: Optional[str] = None          # None: <timestamp>_<graph>-<global>
 
 
 _SECTIONS = {"data": DataConfig, "model": ModelConfig, "task": TaskConfig, "trainer": TrainerConfig,
@@ -122,8 +118,6 @@ class ExperimentConfig:
     resources: ResourceConfig = field(default_factory=ResourceConfig)
 
     def __post_init__(self):
-        if self.task.task not in TASKS:
-            raise ValueError(f"task.task must be one of {TASKS}, got {self.task.task!r}")
         if self.data.reverse_strand not in ("+", "-", None):
             raise ValueError("data.reverse_strand must be '+', '-' or null")
         self.optim = {k: v for k, v in resolve_optim(self.optim).items()}  # validates keys

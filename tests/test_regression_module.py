@@ -34,7 +34,7 @@ def _data(n=40, dn=6, de=4, dg=8):
 
 def test_regression_fit_and_test_run():
     model = build_lit_model(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16,
-                            task="regression", y_mean=25.0, y_std=14.0,
+                            y_mean=25.0, y_std=14.0,
                             global_encoder_kwargs={"num_radii": 2})  # 2 clouds x 2 curves x 2 radii
     dl = DataLoader(_data(), batch_size=8)
     tr = pl.Trainer(max_epochs=2, accelerator="cpu", logger=False, enable_checkpointing=False,
@@ -77,34 +77,3 @@ def test_regression_tunes_threshold_on_val_and_reuses_it_on_test():
     res = tr.test(model, dl, verbose=False)[0]
     assert {"test_precision", "test_recall", "test_jaccard", "test_auprc"} <= set(res)
     assert float(model.detection_threshold) == thr and abs(res["test_g4_threshold"] - thr) < 1e-5
-    b = next(iter(dl))
-    assert torch.equal(model.predict_g4(b), model.predict(b) > thr)
-
-
-def test_classification_binarises_score():
-    model = build_lit_model(node_dim=6, edge_dim=4, global_dim=8, hidden_dim=16,
-                            task="classification", global_encoder_kwargs={"num_radii": 2})
-    b = next(iter(DataLoader(_data(), batch_size=40)))
-    lab = model.target(b)
-    assert set(lab.unique().tolist()) <= {0.0, 1.0}
-    assert torch.equal(lab, (b.y > 35).float())
-    tr = pl.Trainer(max_epochs=1, accelerator="cpu", logger=False, enable_checkpointing=False,
-                    enable_progress_bar=False, enable_model_summary=False)
-    dl = DataLoader(_data(), batch_size=8)
-    tr.fit(model, dl, dl)
-    res = tr.test(model, dl, verbose=False)[0]
-    assert {"test_loss", "test_acc", "test_jaccard", "test_auprc"} <= set(res)
-
-
-def test_aux_g4_loss_is_opt_in():
-    import torch
-    from g4shape.lightning.build import build_lit_model
-
-    kw = dict(node_dim=5, edge_dim=3, global_dim=8, hidden_dim=8,
-              global_encoder_kwargs={"num_radii": 2}, y_mean=1.0, y_std=4.0)
-    out = torch.tensor([0.0, 8.0, 9.0])
-    target = torch.tensor([0.0, 7.0, 10.0])   # z(35) = 8.5 -> last one is a G4
-    plain = build_lit_model(**kw)
-    aux = build_lit_model(**kw, aux_g4_weight=0.5, aux_g4_pos_weight=10.0)
-    assert torch.equal(plain.loss(out, target), torch.nn.functional.mse_loss(out, target))
-    assert aux.loss(out, target) > plain.loss(out, target)

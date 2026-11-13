@@ -127,28 +127,12 @@ def _lit(**kw):
 
 def test_weighted_regression_loss():
     out = torch.tensor([0.0, 8.0, 9.0, -1.0])
-    target = torch.tensor([0.5, 7.0, 10.0, 0.0])   # z(35) = 8.5 -> third is a G4
+    target = torch.tensor([0.5, 7.0, 10.0, 0.0])
     w = torch.tensor([50.0, 1.0, 1.0, 50.0])
     plain = _lit()
     assert torch.equal(plain.loss(out, target), F.mse_loss(out, target))
     assert torch.allclose(plain.loss(out, target, torch.ones(4)), F.mse_loss(out, target))
     assert torch.allclose(plain.loss(out, target, w), (w * (out - target) ** 2).sum() / w.sum())
-    aux = _lit(aux_g4_weight=0.5, aux_g4_pos_weight=10.0)
-    bce = F.binary_cross_entropy_with_logits(out - 8.5, (target > 8.5).float(),
-                                             pos_weight=torch.tensor(10.0), reduction="none")
-    assert torch.allclose(aux.loss(out, target), F.mse_loss(out, target) + 0.5 * bce.mean())
-    assert torch.allclose(aux.loss(out, target, torch.ones(4)), aux.loss(out, target))
-    assert torch.allclose(aux.loss(out, target, w),
-                          ((w * (out - target) ** 2).sum() + 0.5 * (w * bce).sum()) / w.sum())
-
-
-def test_weighted_classification_loss():
-    clf = _lit(task="classification")
-    out, target = torch.tensor([-1.0, 2.0, 0.3]), torch.tensor([0.0, 1.0, 1.0])
-    w = torch.tensor([50.0, 1.0, 1.0])
-    ref = F.binary_cross_entropy_with_logits(out, target, reduction="none")
-    assert torch.allclose(clf.loss(out, target, torch.ones(3)), clf.loss(out, target))
-    assert torch.allclose(clf.loss(out, target, w), (w * ref).sum() / w.sum())
 
 
 def test_train_step_uses_sample_weight(data, subset):

@@ -1,14 +1,14 @@
 """Shared training/evaluation loop of the G4 Lightning modules.
 
-Every task trains the same network (``MultiModalModel``) and is judged the same way at
-the end: "is this window a G4?". What differs between tasks is only
+The network (``MultiModalModel``) is judged at the end by "is this window a G4?". The
+objective is defined by four hooks, implemented by ``LitRegressionModel``:
 
 * ``target(batch)``      what the head output is compared to by the loss,
 * ``loss(out, target)``  the objective,
 * ``postprocess(out)``   head output -> prediction in task units (score / probability),
 * ``epoch_metrics``      extra task metrics on the whole epoch (e.g. Pearson R),
 
-and those four hooks are all a subclass defines. Everything else lives here, once:
+and those hooks are all the subclass defines. Everything else lives here, once:
 building the network, the train/val/test steps and logging, collecting a whole epoch of
 predictions (Pearson, R2, AUPRC are not averages of per-batch values), the G4-detection
 protocol, analysis (``characterize``), inference (``predict``, ``predict_step``) and
@@ -54,7 +54,7 @@ def to_cpu(obj):
 
 
 class LitG4Model(pl.LightningModule):
-    """Abstract base; use ``LitRegressionModel`` or ``LitClassificationModel``."""
+    """Abstract base; use ``LitRegressionModel``."""
 
     progress_metric: Optional[str] = None  # epoch metric shown in the progress bar
 
@@ -99,10 +99,6 @@ class LitG4Model(pl.LightningModule):
         """True G4 labels [B] (bool) from raw ``batch.y``; None disables detection metrics."""
         return None if self.label_threshold is None else y > self.label_threshold
 
-    def step_metrics(self, out: torch.Tensor, target: torch.Tensor) -> dict[str, torch.Tensor]:
-        """Optional cheap per-batch metrics (logged per step in training)."""
-        return {}
-
     def epoch_metrics(self, pred: torch.Tensor, y: torch.Tensor) -> dict[str, torch.Tensor]:
         """Optional task metrics on a whole val/test epoch (``pred`` = postprocess units)."""
         return {}
@@ -125,10 +121,6 @@ class LitG4Model(pl.LightningModule):
     def predict(self, batch) -> torch.Tensor:
         """Prediction in task units, shape [B] (eval mode, no grad)."""
         return self.postprocess(self._eval_forward(batch).view(-1))
-
-    def predict_g4(self, batch) -> torch.Tensor:
-        """Boolean G4 call per sample: prediction > ``detection_threshold``, shape [B]."""
-        return self.predict(batch) > self.detection_threshold
 
     def predict_step(self, batch, batch_idx, dataloader_idx: int = 0):
         """``trainer.predict``: {"prediction", "is_g4"} per batch."""
@@ -154,9 +146,6 @@ class LitG4Model(pl.LightningModule):
         on_step = prefix == "train"
         self.log(f"{prefix}_loss", loss, on_step=on_step, on_epoch=True, prog_bar=True, batch_size=bs,
                  sync_dist=self._distributed)
-        for name, value in self.step_metrics(out, target).items():
-            self.log(f"{prefix}_{name}", value, on_step=on_step, on_epoch=True, prog_bar=True,
-                     batch_size=bs, sync_dist=self._distributed)
         if prefix != "train":
             self._buf[prefix].append((self.postprocess(out).detach().cpu(),
                                       batch.y.float().view(-1).detach().cpu()))

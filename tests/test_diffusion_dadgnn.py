@@ -131,7 +131,6 @@ def test_edge_attr_changes_output_by_default():
 
 def test_details_and_characterize():
     lit = build_lit_model(node_dim=5, edge_dim=3, global_dim=6, hidden_dim=16,
-                          task="classification",
                           graph_encoder_kwargs={"num_layers": 2, "num_heads": 2, "k": 3},
                           global_encoder_kwargs={"num_radii": 3})  # 1 cloud x 2 curves x 3 radii
     b = make_batch()
@@ -139,7 +138,7 @@ def test_details_and_characterize():
     g = res["details"]["graph"]
     E = g["edge_index"].size(1)
     assert res["output"].shape == (3, 1) and res["prediction"].shape == res["is_g4"].shape == (3,)
-    torch.testing.assert_close(res["prediction"], torch.sigmoid(res["output"].view(-1)))
+    torch.testing.assert_close(res["prediction"], res["output"].view(-1))  # y_mean 0, y_std 1
     assert len(g["attention"]) == 2 and g["attention"][0].shape == (2, 3, E)
     assert g["diffusion_coeffs"][0].shape == (2, 4)
     assert g["pool_weights"].shape == (b.x.size(0), 1)
