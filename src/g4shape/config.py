@@ -1,7 +1,7 @@
 """Experiment configuration: everything one training run needs, in one YAML file.
 
     data:      where the genome store / G4-seq index live, window flank, row caps, loaders
-    features:  ``FeatureConfig`` (G-run graph + topology)
+    features:  ``FeatureConfig`` (G-run graph)
     model:     stage names + per-stage kwargs (``src.models.factory``), width, dropout
     task:      target standardisation, G4 label, threshold grid
     optim:     optimizer / lr schedule overrides (``src.lightning.optim.TRANSG4_OPTIM``)
@@ -40,7 +40,6 @@ class DataConfig:
     index_dir: str = ""                     # build_g4seq_index output (required to train)
     flank: int = 100                        # TransG4: 100 + 15 + 100 = 215 nt
     reverse_strand: Optional[str] = "+"     # TransG4 reverse-complements '+' rows
-    use_topology: bool = True
     max_train: Optional[int] = None         # seeded random row caps (genome scale)
     max_val: Optional[int] = None           # validation runs every epoch: cap it on hg19
     max_test: Optional[int] = None          # None = whole test chromosome (paper numbers)
@@ -140,9 +139,7 @@ class ExperimentConfig:
 
     def to_dict(self) -> dict:
         out = {name: asdict(getattr(self, name)) for name in _SECTIONS}
-        features = self.features.to_dict()
-        features["topo_clouds"] = list(features["topo_clouds"])
-        out.update(features=features, optim=dict(self.optim))
+        out.update(features=self.features.to_dict(), optim=dict(self.optim))
         return out
 
     @classmethod

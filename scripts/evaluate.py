@@ -1,11 +1,11 @@
 """Score a trained checkpoint on the test split of an index, without training. Run from the repo
 root, in env g4gnn:
 
-    python -m scripts.evaluate runs/fast_K/checkpoints/best.ckpt --config configs/fast_k.yaml
+    python -m scripts.evaluate runs/k_r0/checkpoints/best.ckpt --config configs/k_r0.yaml
     python -m scripts.evaluate ~/G4_GNN/runs/transg4_K_run1/checkpoints/best.ckpt \\
-        --config configs/fast_k.yaml --name run1_K          # run1 on the same 2M chr1 rows
+        --config configs/k_r0.yaml --name run1_K          # run1 on the same 2M chr1 rows
 
-* model, its features, flank, strand handling and topology switch: from the checkpoint;
+* model, its features, flank and strand handling: from the checkpoint;
 * data (``genome_dir``, ``index_dir``, ``max_test``, ``subsample_seed``, ``eval_batch_size``) and
   the resource limits: from ``--config``, so every model is scored on identical rows;
 * G4 calls use the checkpoint's ``detection_threshold`` (tuned on its own validation run), as
@@ -46,7 +46,7 @@ def evaluate(checkpoint: str | Path, config: str | Path, out: str | Path, cpu: b
     bundle = load_window_bundle(d.genome_dir, d.index_dir, flank=m.flank, feature_config=mcfg.features,
                                 max_val=d.max_val if retune else 1, max_test=d.max_test,
                                 seed=d.subsample_seed,
-                                reverse_strand=m.reverse_strand, use_topology=m.use_topology)
+                                reverse_strand=m.reverse_strand)
     test_ds = bundle["test_dataset"]
     print(f"[evaluate] {checkpoint}\n[evaluate] {len(test_ds):,} test rows of {d.index_dir}, "
           f"{plan.accelerator}, {plan.num_workers} workers", flush=True)

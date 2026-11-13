@@ -97,7 +97,6 @@ def make_batch(with_empty=False):
             x=torch.randn(n, 5),
             edge_index=torch.randint(0, max(n, 1), (2, e)),
             edge_attr=torch.randn(e, 3),
-            global_features=torch.randn(1, 6),
             y=torch.tensor([i % 2]),
         ))
     return Batch.from_data_list(graphs)

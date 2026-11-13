@@ -169,7 +169,7 @@ def run(cfg: ExperimentConfig, trainer_kwargs: Optional[dict] = None,
     bundle = load_window_bundle(d.genome_dir, d.index_dir, flank=d.flank,
                                 feature_config=cfg.features, max_train=d.max_train,
                                 max_val=d.max_val, max_test=d.max_test, seed=d.subsample_seed,
-                                reverse_strand=d.reverse_strand, use_topology=d.use_topology)
+                                reverse_strand=d.reverse_strand)
     ebs = plan.per_device_batch(d.eval_batch_size)
     loader = dict(num_workers=plan.num_workers, persistent_workers=plan.num_workers > 0,
                   pin_memory=plan.accelerator == "gpu")

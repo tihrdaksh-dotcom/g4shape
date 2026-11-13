@@ -56,7 +56,6 @@ def test_dataset_sample_matches_direct_extraction(data):
         np.testing.assert_array_equal(item.x.numpy(), ref["node_features"])
         np.testing.assert_array_equal(item.edge_index.numpy(), ref["edge_index"])
         assert item.y.item() == pytest.approx(score)
-        assert item.global_features.shape == (1, ds.topology_dim)
         assert item.chrom == "chr2" and item.strand == ("+" if strand else "-")
 
 
@@ -79,7 +78,6 @@ def test_dataloader_with_workers_and_subsample(data):
     assert sum(b.num_graphs for b in batches) == 6
     b = batches[0]
     assert b.x.shape[1] == bundle["node_dim"] and b.edge_attr.shape[1] == bundle["edge_dim"]
-    assert b.global_features.shape == (b.num_graphs, bundle["global_dim"])
     assert b.y.dtype.is_floating_point and b.batch.max() == b.num_graphs - 1
 
 
@@ -126,7 +124,6 @@ def test_dataset_item_is_featurize_of_its_window(data):
         item = ds[i]
         chrom, start, strand, _ = ds.index.row(i)
         ref = featurize(g.window(chrom, start, start + 15, 100, reverse=strand == 1), ds.cfg)
-        for k in ("x", "edge_index", "edge_attr", "global_features"):
+        for k in ("x", "edge_index", "edge_attr"):
             assert torch.equal(item[k], ref[k]), (i, k)
         assert item.had_graph == ref.had_graph
-    assert not hasattr(ds[0], "global_attr")  # the unused duplicate is gone
