@@ -77,5 +77,3 @@ def test_regression_tunes_threshold_on_val_and_reuses_it_on_test():
     res = tr.test(model, dl, verbose=False)[0]
     assert {"test_precision", "test_recall", "test_jaccard", "test_auprc"} <= set(res)
     assert float(model.detection_threshold) == thr and abs(res["test_g4_threshold"] - thr) < 1e-5
-    b = next(iter(dl))
-    assert torch.equal(model.predict_g4(b), model.predict(b) > thr)

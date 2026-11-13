@@ -122,10 +122,6 @@ class LitG4Model(pl.LightningModule):
         """Prediction in task units, shape [B] (eval mode, no grad)."""
         return self.postprocess(self._eval_forward(batch).view(-1))
 
-    def predict_g4(self, batch) -> torch.Tensor:
-        """Boolean G4 call per sample: prediction > ``detection_threshold``, shape [B]."""
-        return self.predict(batch) > self.detection_threshold
-
     def predict_step(self, batch, batch_idx, dataloader_idx: int = 0):
         """``trainer.predict``: {"prediction", "is_g4"} per batch."""
         pred = self.predict(batch)

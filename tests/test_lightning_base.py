@@ -47,7 +47,6 @@ def test_analysis_api():
     torch.testing.assert_close(r["prediction"], r["output"].view(-1) * 14.0 + 25.0)
     # inference is deterministic even while the module is in train mode
     assert m.training and torch.equal(m.predict(b), m.predict(b))
-    assert torch.equal(m.predict_g4(b), m.predict(b) > m.detection_threshold)
     assert not m.predict(b).requires_grad and m.training
 
 
