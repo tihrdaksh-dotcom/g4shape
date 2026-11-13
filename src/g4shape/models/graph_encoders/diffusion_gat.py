@@ -27,8 +27,6 @@ class DiffusionGATLayer(nn.Module):
     Multi-head DiffusionAttentionConv (DADGNN ``GATLayer``): heads share the input,
     differ in their attention/temp parameters, and are merged by 'mean' or 'cat'+Wo.
     Optional post-merge residual / BatchNorm / activation (all off by default, as in DADGNN).
-    ``attention`` / ``attention_dim``: edge scoring of every head, "gat" (default) or "gatv2"
-    (see ``DiffusionAttentionConv``).
     """
 
     def __init__(
@@ -46,8 +44,6 @@ class DiffusionGATLayer(nn.Module):
         activation: Union[None, str, Callable] = None,
         project: Optional[bool] = None,
         negative_slope: float = 0.01,
-        attention: str = "gat",
-        attention_dim: Optional[int] = None,
     ):
         super().__init__()
         assert merge in {"cat", "mean"}
@@ -67,8 +63,6 @@ class DiffusionGATLayer(nn.Module):
                     residual=False,  # residual applied after the head merge
                     project=project,
                     negative_slope=negative_slope,
-                    attention=attention,
-                    attention_dim=attention_dim,
                 )
                 for _ in range(num_heads)
             ]
@@ -134,7 +128,7 @@ class DiffusionGATEncoder(GraphEncoder):
         WeightAndSum readout                                 (pool="weight_and_sum")
 
     Defaults reproduce that. Extras (edge features, self-loops, residual, BatchNorm,
-    other pools, ``attention="gatv2"``) are opt-in flags; ``use_edge_attr=True`` is the one
+    other pools) are opt-in flags; ``use_edge_attr=True`` is the one
     deliberate default extension (G4 graphs carry edge features; set False for exact DADGNN).
 
     ``forward(..., return_details=True)`` additionally returns a dict for later analysis:
@@ -167,8 +161,6 @@ class DiffusionGATEncoder(GraphEncoder):
         residual: bool = False,
         batch_norm: bool = False,
         activation: Union[None, str, Callable] = None,
-        attention: str = "gat",
-        attention_dim: Optional[int] = None,
     ):
         super().__init__(out_dim=hidden_dim)
 
@@ -202,8 +194,6 @@ class DiffusionGATEncoder(GraphEncoder):
                     activation=activation,
                     project=project,
                     negative_slope=negative_slope,
-                    attention=attention,
-                    attention_dim=attention_dim,
                 )
                 for i in range(num_layers)
             ]
