@@ -44,6 +44,20 @@ Override any setting with `--set section.key=value`; `--print-config` shows the 
 config. A run writes `runs/<run_name>/` (checkpoints, `test_metrics.json`, the config).
 `python -m scripts.evaluate <best.ckpt> --config <yaml>` re-scores a checkpoint without training.
 
+## Working on the GPU workstation
+
+`git push` sends commits to GitHub **and** to `~/g4shape` on the workstation (SSH host
+`workstation`), whose files update at once. `data/` there links to `~/G4_GNN_fast/data/`.
+
+```bash
+scripts/sync.sh push      # code -> GitHub + workstation (commit first)
+ssh workstation 'cd ~/g4shape && conda run -n g4gnn python -m g4shape.train --config configs/pds_r0.yaml'
+scripts/sync.sh pull      # runs/ (and any commits made there) -> here
+scripts/sync.sh status    # are both sides on the same commit?
+```
+
+For a long run, start it inside `tmux` on the workstation so it survives a dropped connection.
+
 ## Layout
 
 Every file in `src/g4shape`, with the reason it is kept:
@@ -81,5 +95,5 @@ Every file in `src/g4shape`, with the reason it is kept:
 | `train.py` | Entry point: train, test and reload a run |
 
 Other folders: `configs/` (one YAML per run), `scripts/` (`make_subset.py`: the weighted fast
-subsets; `evaluate.py`: re-score a checkpoint; `make_golden.py`: the golden files), `tests/`,
+subsets; `evaluate.py`: re-score a checkpoint; `make_golden.py`: the golden files; `sync.sh`: laptop <-> workstation), `tests/`,
 `docs/` (aims, roadmap, results, decisions).
