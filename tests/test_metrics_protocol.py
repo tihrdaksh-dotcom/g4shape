@@ -27,7 +27,8 @@ def test_resolve_threshold_grid():
 
 def test_grid_spec_from_config_reaches_the_model():
     cfg = ExperimentConfig().with_overrides(["task.threshold_grid={start: 5.0, stop: 45.0, step: 0.1}"])
-    small = dict(node_dim=4, edge_dim=3, global_dim=6, hidden_dim=8, global_encoder="mlp")
+    small = dict(node_dim=4, edge_dim=3, global_dim=6, hidden_dim=8,
+                 global_encoder_kwargs={"num_radii": 3})  # 1 cloud x 2 curves x 3 radii
     model = build_lit_model(**small, threshold_grid=cfg.task.threshold_grid)
     assert model.threshold_grid == resolve_threshold_grid(WIDE_GRID)
     default = build_lit_model(**small)

@@ -29,9 +29,7 @@ class FeatureConfig:
     Graph extras (graph_extras.py; all off by default = the original graph, bit for bit):
               position_encoding (signed offset of runs / loops from the target bin, RBF),
               gap_encoding ("raw" | "bucket": loop-length classes + gap / edge_radius),
-              anchor_node (virtual target-bin node linked to every run),
-              onehot_context (one-hot of N nt each side of a run), loop_end_bases (one-hot
-              of the first / last N loop bases); target_len (bin length, centred in the
+              loop_end_bases (one-hot of the first / last N loop bases); target_len (bin length, centred in the
               sequence), pos_rbf / pos_sigma (number / width in nt of the RBF centres).
     """
 
@@ -44,18 +42,10 @@ class FeatureConfig:
     max_step: int = 20
     position_encoding: bool = False
     gap_encoding: str = "raw"
-    anchor_node: bool = False
-    onehot_context: int = 0
     loop_end_bases: int = 0
     target_len: int = 15
     pos_rbf: int = 16
     pos_sigma: float = 10.0
-    # Sequence-CNN branch: when true, `global_features` carries the raw one-hot window
-    # ([seq_channels x seq_window] flattened) instead of the topology vector, so a
-    # `seq_cnn` global encoder can convolve over it. seq_window must equal the window
-    # length the model is trained on (bin + 2*flank); seq_channels is fixed at 5 (ACGTN).
-    sequence_branch: bool = False
-    seq_window: int = 0
 
     def __post_init__(self) -> None:
         clouds = (self.topo_clouds,) if isinstance(self.topo_clouds, str) else self.topo_clouds
@@ -72,13 +62,10 @@ class FeatureConfig:
             "step_size must be positive": self.step_size > 0,
             "max_step must be >= 1": self.max_step >= 1,
             "gap_encoding must be 'raw' or 'bucket'": self.gap_encoding in ("raw", "bucket"),
-            "onehot_context must be between 0 and 50": 0 <= self.onehot_context <= 50,
             "loop_end_bases must be between 0 and 10": 0 <= self.loop_end_bases <= 10,
             "target_len must be >= 1": self.target_len >= 1,
             "pos_rbf must be >= 2": self.pos_rbf >= 2,
             "pos_sigma must be positive": self.pos_sigma > 0,
-            "seq_window must be > 0 when sequence_branch is set":
-                (not self.sequence_branch) or self.seq_window > 0,
         }
         failed = [msg for msg, ok in checks.items() if not ok]
         if failed:

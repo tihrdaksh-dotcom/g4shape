@@ -16,14 +16,6 @@ motif lifts the bin's score when it sits 0-50 nt 5' of the bin and not when it s
 * ``gap_encoding="bucket"`` -- the raw ``gap`` column becomes gap / edge_radius (it dominated
   the attention logits at its raw scale) and loop-length classes 1, 2, 3, 4-5, 6-7, 8-12,
   13-20, 21-30, >30 are appended (one-hot), so each head can learn a bias per loop class.
-* ``anchor_node`` -- one virtual node for the target bin (last node, ``is_anchor`` = last
-  node column), linked to every run in both directions (``to_anchor`` / ``from_anchor``
-  edge flags; with ``position_encoding`` the anchor edges carry the run's offset RBF, so
-  attention into the anchor can learn the position response). Read out by ``anchor_gat``.
-  A sequence without G-runs still gets the anchor (``n_runs`` = 0).
-* ``onehot_context`` = K -- one-hot of the K nt before and after each run (N or outside the
-  sequence = 0.25 each, as TransG4 encodes N); the first node layer is then a set of
-  learned position-specific motifs around the run.
 * ``loop_end_bases`` = K -- one-hot of the first and last K bases of each loop (0 past the
   loop end).
 """
@@ -48,8 +40,7 @@ GAP_BUCKETS: Tuple[Tuple[str, int], ...] = (("1", 1), ("2", 2), ("3", 3), ("4_5"
 
 
 def uses_extras(cfg: FeatureConfig) -> bool:
-    return bool(cfg.position_encoding or cfg.gap_encoding != "raw" or cfg.anchor_node
-                or cfg.onehot_context or cfg.loop_end_bases)
+    return bool(cfg.position_encoding or cfg.gap_encoding != "raw" or cfg.loop_end_bases)
 
 
 def target_bin(n: int, cfg: FeatureConfig) -> Tuple[int, int, float]:
@@ -94,11 +85,6 @@ def graph_node_feature_names(cfg: FeatureConfig) -> List[str]:
     names = list(node_feature_names(cfg))
     if cfg.position_encoding:
         names += _pos_names("node", cfg) + ["in_bin", "bin_overlap"]
-    k = cfg.onehot_context
-    names += [f"ctx_up{i}_{b}" for i in range(k, 0, -1) for b in _BASES]
-    names += [f"ctx_down{i}_{b}" for i in range(1, k + 1) for b in _BASES]
-    if cfg.anchor_node:
-        names.append("is_anchor")  # always the last column (anchor_gat relies on it)
     return names
 
 
@@ -114,21 +100,17 @@ def graph_edge_feature_names(cfg: FeatureConfig) -> List[str]:
     k = cfg.loop_end_bases
     names += [f"loop_first{i}_{b}" for i in range(1, k + 1) for b in _BASES]
     names += [f"loop_last{i}_{b}" for i in range(1, k + 1) for b in _BASES]
-    if cfg.anchor_node:
-        names += ["to_anchor", "from_anchor"]
     return names
 
 
 def extract_graph_full(codes: np.ndarray, cfg: FeatureConfig) -> Dict[str, Any]:
-    """``extract_graph`` + the enabled extra blocks; extra keys ``n_runs`` (G-run nodes,
-    without the anchor) and ``anchor_index`` (-1 without an anchor)."""
+    """``extract_graph`` + the enabled extra blocks (same keys as ``extract_graph``)."""
     codes = np.asarray(codes)
     g = extract_graph(codes, cfg)
     if not uses_extras(cfg):
         return g
     n = codes.size
     starts, ends = g["run_starts"].astype(np.int64), g["run_ends"].astype(np.int64)
-    n_runs = int(starts.size)
     lo, hi, centre = target_bin(n, cfg)
 
     # ---- nodes ----
@@ -138,15 +120,10 @@ def extract_graph_full(codes: np.ndarray, cfg: FeatureConfig) -> Dict[str, Any]:
         overlap = np.clip(np.minimum(ends, hi) - np.maximum(starts, lo), 0, None)
         blocks += [_position_block(off, cfg, n), (overlap > 0)[:, None],
                    (overlap / cfg.target_len)[:, None]]
-    k = cfg.onehot_context
-    if k:
-        for pos in [starts - i for i in range(k, 0, -1)] + [ends + i for i in range(k)]:
-            blocks.append(_onehot_at(codes, pos, (pos >= 0) & (pos < n), 0.25))
     x = np.concatenate([np.asarray(b, np.float32) for b in blocks], axis=1)
 
     # ---- edges (pair k = rows 2k (i->j, i < j) and 2k+1 (j->i)) ----
     ei, ea = g["edge_index"], g["edge_features"].copy()
-    n_e = ei.shape[1]
     src, dst = ei[0, ::2], ei[1, ::2]
     loop_lo, loop_hi = ends[src], starts[dst]
     eblocks = [ea]
@@ -163,37 +140,8 @@ def extract_graph_full(codes: np.ndarray, cfg: FeatureConfig) -> Dict[str, Any]:
         lasts = [_onehot_at(codes, loop_hi - 1 - i, loop_hi - 1 - i >= loop_lo, 0.0)
                  for i in range(k)]
         eblocks.append(np.repeat(np.concatenate(firsts + lasts, axis=1), 2, axis=0))
-    d_edge = len(graph_edge_feature_names(cfg))
-    if cfg.anchor_node:
-        eblocks.append(np.zeros((n_e, 2), np.float32))
     ea = np.concatenate([np.asarray(b, np.float32) for b in eblocks], axis=1)
-
-    anchor = -1
-    if cfg.anchor_node:
-        anchor = n_runs
-        x = np.concatenate([x, np.zeros((n_runs, 1), np.float32)], axis=1)
-        a_row = np.zeros((1, x.shape[1]), np.float32)
-        a_row[0, -1] = 1.0
-        names = graph_node_feature_names(cfg)
-        if cfg.position_encoding:  # the anchor sits on the bin: offset 0, fully in the bin
-            a_row[0, names.index("node_offset_scaled"):names.index("in_bin")] = \
-                _position_block(np.zeros(1), cfg, n)[0]
-            a_row[0, names.index("in_bin")] = a_row[0, names.index("bin_overlap")] = 1.0
-        x = np.concatenate([x, a_row], axis=0)
-        runs = np.arange(n_runs, dtype=np.int64)
-        a_ei = np.stack([np.concatenate([runs, np.full(n_runs, anchor)]),
-                         np.concatenate([np.full(n_runs, anchor), runs])])
-        a_ea = np.zeros((2 * n_runs, d_edge), np.float32)
-        a_ea[:n_runs, -2] = 1.0
-        a_ea[n_runs:, -1] = 1.0
-        if cfg.position_encoding and n_runs:
-            enames = graph_edge_feature_names(cfg)
-            c0 = enames.index("edge_offset_scaled")
-            pos = _position_block((starts + ends - 1) / 2 - centre, cfg, n)
-            a_ea[:, c0:c0 + pos.shape[1]] = np.concatenate([pos, pos])
-        ei = np.concatenate([ei, a_ei], axis=1).astype(np.int64)
-        ea = np.concatenate([ea, a_ea], axis=0)
 
     return {**g, "node_features": x.astype(np.float32), "edge_index": ei,
             "edge_features": ea.astype(np.float32), "n_nodes": int(x.shape[0]),
-            "n_edges": int(ei.shape[1]), "n_runs": n_runs, "anchor_index": anchor}
+            "n_edges": int(ei.shape[1])}

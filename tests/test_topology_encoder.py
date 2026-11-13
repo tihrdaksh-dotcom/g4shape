@@ -6,7 +6,6 @@ from g4shape.features.config import FeatureConfig
 from g4shape.features.sequence import encode
 from g4shape.features.topology import extract_topology, topology_dim, topology_feature_names, topology_layout
 from g4shape.models.factory import build_global_encoder
-from g4shape.models.global_encoders.mlp import MLPEncoder
 from g4shape.models.global_encoders.topo_curve import TopologyCurveEncoder, preprocess_topology
 
 CFG = FeatureConfig()
@@ -52,12 +51,10 @@ def test_cloud_order_matters():
     assert not torch.allclose(enc(x), enc(v.reshape(1, -1)))
 
 
-def test_factory_default_and_param_budget():
+def test_factory_builds_topo_curve():
     gd = topology_dim(CFG)
     enc = build_global_encoder("topo_curve", global_dim=gd, hidden_dim=64, **topology_layout(CFG))
     assert isinstance(enc, TopologyCurveEncoder)
-    n_params = lambda m: sum(p.numel() for p in m.parameters() if p.requires_grad)
-    assert n_params(enc) < n_params(MLPEncoder(gd, 64)) / 3
 
 
 def test_rejects_wrong_layout():
