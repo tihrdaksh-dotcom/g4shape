@@ -43,7 +43,7 @@ def test_yaml_roundtrip_and_overrides(tmp_path):
     ({"model": {"hiden_dim": 8}}, "did you mean 'hidden_dim'"),
     ({"optim": {"learning_rate": 1}}, "unknown optimizer setting"),
     ({"features": {"edge_radus": 3}}, "unknown config key"),
-    ({"task": {"task": "regression"}}, "unknown key"),  # the classification task is gone
+    ({"task": {"task": "regression"}}, "unknown key"),  # task.task was removed
 ])
 def test_config_typos_raise(bad, match):
     with pytest.raises(ValueError, match=match):
