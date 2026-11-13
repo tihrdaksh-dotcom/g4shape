@@ -1,46 +1,82 @@
-# R0 model, K+ condition: G-run graph -> diffusion-attention encoder -> weighted-sum readout
-#   -> LayerNorm -> MLP head, regression on the G4-seq mismatch score (docs/FOCUS.md).
-# Data: weighted subsample data/g4seq_K_fast of the full index data/g4seq_K, built with:
-#   python -m scripts.make_subset --source data/g4seq_K --out data/g4seq_K_fast \
-#       --cutoff 10 --keep-low 0.02 --val 1000000 --test 2000000 --seed 0
-# train: every window with score >= 10 (weight 1) + a 2 % Bernoulli sample of the windows < 10 (weight 50,
-#        the `sample_weight` of the MSE: an unbiased estimate of the full-data loss).
-# val:   uniform 1,000,000 chr2 windows; test: uniform 2,000,000 chr1 windows (unweighted).
-# task.y_mean / y_std = exact full-train-split stats. data.batch_size is the GLOBAL batch.
+# R0 model, K+ condition (docs/FOCUS.md):
+#   G-run graph -> diffusion-attention encoder -> weighted-sum readout -> LayerNorm -> MLP head,
+#   regression on the G4-seq mismatch score; 30,442 trainable parameters.
+# Every setting is written out (no hidden defaults); the loader rejects unknown keys.
 # Train: python -m g4shape.train --config configs/k_r0.yaml [--set section.key=value ...]
 data:
-  genome_dir: data/hg19
-  index_dir: data/g4seq_K_fast
-  flank: 100
-  reverse_strand: +
-  max_train: null
+  genome_dir: data/hg19              # build_genome_store output
+  index_dir: data/g4seq_K_fast    # weighted subsample of data/g4seq_K, built with:
+  #   python -m scripts.make_subset --source data/g4seq_K --out data/g4seq_K_fast \
+  #       --cutoff 10 --keep-low 0.02 --val 1000000 --test 2000000 --seed 0
+  # train: every window with score >= 10 (weight 1) + a 2 % sample of the rest (weight 50);
+  # val: 1,000,000 uniform chr2 windows; test: 2,000,000 uniform chr1 windows (unweighted).
+  flank: 100                         # window = 100 + 15 + 100 = 215 nt
+  reverse_strand: +                  # '+' rows are reverse-complemented (TransG4)
+  max_train: null                    # null: the subset already fixes the sizes
   max_val: null
   max_test: null
   subsample_seed: 0
-  batch_size: 256
+  batch_size: 256                    # GLOBAL batch (split over GPUs)
   eval_batch_size: 512
-  num_workers: auto
+  num_workers: auto                  # per rank; from the idle-CPU budget
+features:
+  min_run_len: 2                     # G-runs of >= 2 G are the graph's nodes
+  edge_radius: 50                    # runs <= 50 nt apart are linked
+  context_bases: 2
+  flank_window: 20
+  position_encoding: true            # signed offset of runs / loops from the target bin (RBF)
+  gap_encoding: raw                  # loop length as one raw column ('bucket': loop classes)
+  loop_end_bases: 0                  # one-hot of the first / last N loop bases (0 = off)
+  target_len: 15                     # the scored bin, centred in the window
+  pos_rbf: 16
+  pos_sigma: 10.0
 model:
   hidden_dim: 64
   dropout: 0.2
   graph_encoder: diffusion_gat
-  classifier: binary_mlp
-  graph_encoder_kwargs: {}
-  classifier_kwargs: {}
+  graph_encoder_kwargs:
+    k: 3                             # diffusion hops per layer
+    alpha: 0.1                       # initial hop weights alpha(1-alpha)^t
+    num_heads: 4
+    merge: mean
+    num_layers: 2
+    pool: weight_and_sum             # weighted-sum readout
+    input_mlp: true
+    use_edge_attr: true
+    add_self_loops: true
+    negative_slope: 0.01
+    project: null                    # null: only when in_dim != out_dim
+    layer_dropout: 0.0
+    residual: false
+    batch_norm: false
+    activation: null
+  classifier: binary_mlp             # Linear(64, 64) -> ReLU -> Dropout -> Linear(64, 1)
+  classifier_kwargs: {}              # its widths and dropout are wired from hidden_dim / dropout
 task:
-  label_threshold: 25.0   # K+ G4 label: y > 25 (TransG4 p. 8892, G4mismatch; PDS: 35)
-  y_mean: 1.1561764181906793
+  label_threshold: 25.0              # K+ G4 label: y > 25 (TransG4 p. 8892, G4mismatch)
+  y_mean: 1.1561764181906793       # exact full-train-split stats of data/g4seq_K
   y_std: 3.5258360107489124
-  threshold_grid: {start: 5.0, stop: 45.0, step: 0.1}   # tuned on val; 30-34.9 clipped the optimum
+  threshold_grid: {start: 5.0, stop: 45.0, step: 0.1}   # G4 call threshold, tuned on val
+optim:
+  lr: 0.001
+  betas: [0.9, 0.999]
+  eps: 1.0e-07
+  weight_decay: 0.0
+  scheduler: exponential             # lr * decay_rate ** (step / decay_steps)
+  decay_rate: 0.99
+  decay_steps: 10000
+  plateau_factor: 0.5                # used only by scheduler: plateau
+  plateau_patience: 3
 trainer:
   max_epochs: 1
   seed: 42
-  accelerator: auto
+  accelerator: auto                  # free GPUs, else CPU
   devices: auto
   strategy: auto
   precision: 32-true
   gradient_clip_val: null
   log_every_n_steps: 50
+  checkpoint_every_minutes: 30.0
   out_dir: runs
   run_name: k_r0
 resources:
@@ -52,25 +88,8 @@ resources:
   on_busy: wait
   wait_timeout_min: 120.0
   poll_seconds: 60.0
-  cpu_share: 1.0               # all idle cores (featurisation is the bottleneck)
-  max_workers_per_device: 64   # effectively no per-GPU cap; the idle-core budget decides
+  cpu_share: 1.0                     # all idle cores (featurisation is the bottleneck)
+  max_workers_per_device: 64         # no per-GPU cap; the idle-core budget decides
   nice: 10
   nccl_check: true
-features:
-  min_run_len: 2
-  edge_radius: 50
-  context_bases: 2
-  flank_window: 20
-  position_encoding: true
-optim:
-  lr: 0.001
-  betas:
-  - 0.9
-  - 0.999
-  eps: 1.0e-07
-  weight_decay: 0.0
-  scheduler: exponential
-  decay_rate: 0.99
-  decay_steps: 10000
-  plateau_factor: 0.5
-  plateau_patience: 3
+  rescale_check_minutes: 15.0
