@@ -34,14 +34,16 @@ Requirements:
 
 ## Current Status:
 - Basic framework is in place - functions work, test modules set up
+- Data availability confirmed: full datasets now available at `/home/sidharth/G4_GNN_fast/data/g4seq_K` and `/home/sidharth/G4_GNN_fast/data/g4seq_PDS`
 - Need to complete:
   * TF environment setup for reference scoring  
   * Reference model scoring capability for G4mismatch and TransG4
   * Gate 2 implementations with new model features
 
 ## Next steps:
-1. Implement the actual data loading and feature extraction functions needed for scoring reference models
+1. Implement the actual data loading and feature extraction functions needed for scoring reference models (using the full datasets)
 2. Integrate TensorFlow-based reference scoring capabilities 
 3. Start implementing the lattice tokenizer and related feature improvements for Gate 2
+4. Update configurations to use full datasets when needed for evaluation
 
 This plan will be implemented through multiple commits following the teaching mode.
