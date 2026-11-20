@@ -4,18 +4,10 @@ Evaluation module for comparing model predictions on identical rows.
 This implements the requirements from Gate 1 and Gate 2.
 """
 
-import os
-import sys
+from typing import Any, Dict, List
+
 import numpy as np
-import pandas as pd
-from pathlib import Path
-from typing import Dict, List, Tuple, Any
-import re
 
-# Add src to path for imports  
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from g4shape.data.g4seq_index import G4SeqIndex
 
 def pearson_r(pred: np.ndarray, y: np.ndarray) -> float:
     """Compute Pearson correlation coefficient."""
