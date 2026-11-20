@@ -63,3 +63,34 @@ def test_evaluate_retune_rescores_without_retraining(data, tmp_path):
     for k in ("test_mae", "test_rmse", "test_r2", "test_pearson"):   # regression is protocol-free
         assert np.isclose(re["metrics"][k], old["metrics"][k])
     assert json.loads((tmp_path / "re.json").read_text())["protocol"]["label_threshold"] == 25.0
+
+
+def test_evaluate_saves_aligned_predictions(data, tmp_path):
+    from g4shape.analysis.evaluate_rows import regression
+    from g4shape.data.g4seq_index import G4SeqIndex
+    from g4shape.train import run
+    from scripts.evaluate import PRED_DTYPE, evaluate
+
+    d, _, _ = data
+    base = ["model.hidden_dim=8", "model.graph_encoder_kwargs={num_layers: 1, num_heads: 2}",
+            "data.batch_size=4", "data.eval_batch_size=3", "resources.nice=0", "data.num_workers=0",
+            f"data.genome_dir={d / 'genome'}", f"data.index_dir={d / 'index'}",
+            f"trainer.out_dir={tmp_path}", "trainer.run_name=r", "trainer.accelerator=cpu"]
+    ckpt = run(ExperimentConfig().with_overrides(base),
+               trainer_kwargs={"enable_progress_bar": False, "enable_model_summary": False})["best_checkpoint"]
+    index = G4SeqIndex(d / "index", "test")
+    for name, extra in (("all", []), ("sub", ["data.max_test=5"])):   # every row; a subsample
+        cfg = tmp_path / f"{name}.yaml"
+        ExperimentConfig().with_overrides(base + extra).to_yaml(cfg)
+        res = evaluate(ckpt, cfg, tmp_path / f"{name}.json", cpu=True, save_predictions=True)
+        rec = np.load(res["predictions"])
+        assert rec.dtype == PRED_DTYPE and rec.size == res["rows"] == res["metrics"]["test_n_samples"]
+        if name == "all":
+            assert np.array_equal(rec["row"], np.arange(len(index)))
+        assert np.array_equal(rec["start"], index.col("start")[rec["row"]])
+        assert np.array_equal(rec["y"], index.col("score")[rec["row"]])
+        again = regression(rec["pred"], rec["y"])            # same numbers as the test pass
+        for k in ("pearson", "mae", "rmse", "r2"):
+            assert np.isclose(again[k], res["metrics"][f"test_{k}"], rtol=1e-4, atol=1e-6), (name, k)
+    plain = evaluate(ckpt, tmp_path / "all.yaml", tmp_path / "plain.json", cpu=True)
+    assert "predictions" not in plain and not (tmp_path / "plain.predictions.npy").exists()

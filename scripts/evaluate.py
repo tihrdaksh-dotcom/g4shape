@@ -15,6 +15,10 @@ root, in env g4gnn:
   split scored with it: re-scores a finished run under a corrected protocol without retraining
   (``project/docs/Metrics validation.md``). Regression metrics do not change.
 
+* ``--save-predictions``: also writes ``runs/eval/<name>.predictions.npy``, one record per test
+  row in index order, fields ``row`` (index row id), ``start``, ``y``, ``pred`` (score units), from
+  the same test pass (for ``g4shape.analysis.evaluate_rows``: paired bootstrap, classes).
+
 Writes ``runs/eval/<name>.json`` (metrics + provenance); refuses to overwrite it without ``--force``.
 """
 
@@ -25,6 +29,7 @@ import json
 import time
 from pathlib import Path
 
+import numpy as np
 import pytorch_lightning as pl
 from torch_geometric.loader import DataLoader
 
@@ -34,9 +39,41 @@ from g4shape.lightning.metrics import resolve_threshold_grid
 from g4shape.resources import apply_process_settings, plan_resources, prepare_worker_fork
 from g4shape.train import load_trained
 
+PRED_DTYPE = np.dtype([("row", np.int64), ("start", np.int32), ("y", np.float32), ("pred", np.float32)])
+
+
+class _KeepTestPredictions(pl.Callback):
+    """Copies each test batch's predictions (the (pred, y) pair the module has just buffered for
+    its epoch metrics), so they come from the same pass as the metrics. Checks every batch's bin
+    starts against the expected rows: the loader must run in index order on one device."""
+
+    def __init__(self, starts: np.ndarray):
+        self.starts = starts
+        self.pred, self.y = [], []
+        self.n = 0
+
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+        pred, y = pl_module._buf["test"][-1]
+        got = np.asarray(batch.start).reshape(-1)
+        want = self.starts[self.n:self.n + got.size]
+        if got.size != pred.numel() or not np.array_equal(got, want):
+            raise RuntimeError(f"test batch {batch_idx}: rows out of order, predictions not saved")
+        self.pred.append(pred.numpy().astype(np.float32))
+        self.y.append(y.numpy().astype(np.float32))
+        self.n += got.size
+
+    def records(self, rows: np.ndarray) -> np.ndarray:
+        if self.n != rows.size:
+            raise RuntimeError(f"{self.n} predictions for {rows.size} test rows")
+        rec = np.empty(rows.size, dtype=PRED_DTYPE)
+        rec["row"], rec["start"] = rows, self.starts
+        rec["y"], rec["pred"] = np.concatenate(self.y), np.concatenate(self.pred)
+        return rec
+
 
 def evaluate(checkpoint: str | Path, config: str | Path, out: str | Path, cpu: bool = False,
-             overrides: tuple[str, ...] = (), retune: bool = False) -> dict:
+             overrides: tuple[str, ...] = (), retune: bool = False,
+             save_predictions: bool = False) -> dict:
     data_cfg = ExperimentConfig.from_yaml(config).with_overrides(list(overrides))
     model, mcfg = load_trained(checkpoint)
     d, m = data_cfg.data, mcfg.data
@@ -52,8 +89,14 @@ def evaluate(checkpoint: str | Path, config: str | Path, out: str | Path, cpu: b
           f"{plan.accelerator}, {plan.num_workers} workers", flush=True)
     dl = DataLoader(test_ds, batch_size=d.eval_batch_size, num_workers=plan.num_workers,
                     persistent_workers=False, shuffle=False)
+    keep = None
+    if save_predictions:
+        rows = (np.arange(len(test_ds), dtype=np.int64) if test_ds.rows is None
+                else test_ds.rows.astype(np.int64))
+        keep = _KeepTestPredictions(np.asarray(test_ds.index.col("start"))[rows].astype(np.int32))
     trainer = pl.Trainer(accelerator=plan.accelerator, devices=1, logger=False,
-                         precision=mcfg.trainer.precision, enable_model_summary=False)
+                         precision=mcfg.trainer.precision, enable_model_summary=False,
+                         callbacks=[keep] if keep is not None else None)
     t0 = time.time()
     protocol = {"label_threshold": model.label_threshold, "threshold_grid": "checkpoint",
                 "threshold_tuned_on": "checkpoint's own validation run"}
@@ -85,6 +128,10 @@ def evaluate(checkpoint: str | Path, config: str | Path, out: str | Path, cpu: b
         result["val_metrics"] = val_metrics
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    if keep is not None:
+        pred_path = out.with_name(f"{out.stem}.predictions.npy")
+        np.save(pred_path, keep.records(rows))
+        result["predictions"] = str(pred_path)
     out.write_text(json.dumps(result, indent=1))
     return result
 
@@ -100,13 +147,15 @@ def main(argv=None) -> int:
     p.add_argument("--cpu", action="store_true", help="force CPU")
     p.add_argument("--retune", action="store_true",
                    help="label + threshold grid from --config, threshold re-tuned on its val rows")
+    p.add_argument("--save-predictions", action="store_true",
+                   help="also write <name>.predictions.npy (row, start, y, pred per test row)")
     p.add_argument("--force", action="store_true", help="overwrite an existing result")
     a = p.parse_args(argv)
     name = a.name or Path(a.checkpoint).resolve().parent.parent.name
     out = Path(a.out_dir) / f"{name}.json"
     if out.exists() and not a.force:
         p.error(f"{out} exists (pass --force to overwrite it)")
-    res = evaluate(a.checkpoint, a.config, out, a.cpu, tuple(a.set), a.retune)
+    res = evaluate(a.checkpoint, a.config, out, a.cpu, tuple(a.set), a.retune, a.save_predictions)
     print(json.dumps(res["metrics"], indent=1))
     print("wrote", out)
     return 0
