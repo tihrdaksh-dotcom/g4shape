@@ -66,3 +66,22 @@ def test_condition_must_match_label_threshold(pds_index):
         compare(_metrics(PDS_TEST_ROWS), "PDS", pds_index, label_threshold=25.0)
     with pytest.raises(ValueError):
         compare(_metrics(PDS_TEST_ROWS), "KPDS", pds_index)
+
+
+def test_compare_published_script(tmp_path, pds_index):
+    from scripts.compare_published import main
+
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "config.yaml").write_text("task:\n  label_threshold: 35.0\n")
+    (run / "test_metrics.json").write_text(json.dumps(_metrics(PDS_TEST_ROWS)))
+    assert main([str(run / "test_metrics.json"), "--condition", "PDS", "--index-dir", str(pds_index)]) == 0
+    out = json.loads((run / "published_comparison.json").read_text())
+    assert out["comparable"] and len(out["rows"]) == len(references("PDS"))
+
+    ev = tmp_path / "sampled.json"                    # an eval file scored on the 2M sample
+    ev.write_text(json.dumps({"protocol": {"label_threshold": 35.0}, "metrics": _metrics(2_000_000)}))
+    with pytest.raises(SystemExit):
+        main([str(ev), "--condition", "PDS", "--index-dir", str(pds_index)])
+    with pytest.raises(SystemExit):                   # wrong condition for the run's threshold
+        main([str(run / "test_metrics.json"), "--condition", "K", "--index-dir", str(pds_index)])
