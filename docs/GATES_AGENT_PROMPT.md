@@ -2,6 +2,9 @@
 
 Paste everything below the line into Claude Code, started in `~/g4shape`.
 
+Version 2 (2026-11-20): Gate 1 now uses the complete dataset (every chr1 row) and the values reported in the TransG4
+and G4mismatch papers as baselines. Reproducing or retraining the published models is no longer required.
+
 ---
 
 You are working in the repository `~/g4shape` (GitHub `tihrdaksh-dotcom/g4shape`, HEAD `bac6b5c`, tag `v1-core`).
@@ -22,8 +25,9 @@ Two gates decide whether the G-run graph project continues. Run them and write a
 `docs/GATES_REPORT.md`. Do not tune anything to make a gate pass. Write the predictions into `docs/RESULTS.md` and
 commit them **before** any gate run starts.
 
-- **Gate 1 (protocol parity):** what is the real gap between our model and the published models, on identical rows
-  (every chr1 bin)?
+- **Gate 1 (protocol parity):** what is the real gap between our model and the published models? Our checkpoints are
+  scored on **every chr1 bin** of the complete dataset and compared with the values **reported** in the TransG4 and
+  G4mismatch papers. The published models are **not** rebuilt or retrained.
 - **Gate 2 (input fidelity + learning curves):** does fixing the graph's *input* (tokens and loop/tract encoding)
   bring the graph model to parity with a matched 1-D CNN at full data, and does the graph lead at small data?
 
@@ -39,21 +43,49 @@ commit them **before** any gate run starts.
   | K+ | 311,734,698 | 31,356,341 | 29,534,138 |
   | PDS | 315,437,985 | 31,652,070 | 29,923,093 |
 
-- `data/` in the repo links only to the weighted `_fast` subsets (2M-row test sample). On the workstation, `data/`
-  links to `~/G4_GNN_fast/data/`. **Find where the full indexes live on the workstation before using them; do not
-  assume.**
+- **The complete dataset replaces the sampled one.** I (the user) will add the full indexes to `data/` as new links,
+  `data/g4seq_PDS` and `data/g4seq_K`, on the laptop and on the workstation.
+  - Before using them, confirm they exist and that `index.json` counts match the table above. If they are missing,
+    stop and ask me.
+  - Keep the existing `data/g4seq_*_fast` links: the real-data golden test (`tests/test_golden.py`, golden A) reads
+    `data/g4seq_PDS_fast`, and it must not change.
+  - Up to now every number in this repo was measured on the `_fast` subsets: a weighted training subsample, and a
+    2,000,000-row uniform chr1 test sample. From now on the test set is every chr1 row.
+  - Sampling check already done: run1 (old baseline) scored R 0.8585 / 0.8111 (PDS / K+) on the 2M sample and
+    0.859 / 0.809 on all chr1 bins. The sample effect is ≤ 0.002 for that model, but our current models have never
+    been scored on all bins.
 - Labels: G4 = score > 35 (PDS), > 25 (K+). '+' rows are reverse-complemented, as in TransG4 / G4mismatch.
 
 ### Earlier results, all on the 2M-row sample, not full chr1, one seed unless stated
 PDS posonly (with topology branch) R 0.9115; gatv2_pos graph-only 0.8993; GATv2-only 0.8012; baseline 0.8545. A
 full-data baseline (run1) scored on all chr1 bins gave R 0.859.
 
-### Published references on all chr1 bins
-- G4mismatch R: K+ 0.84, PDS 0.91.
-- TransG4 R: K+ 0.87, PDS 0.94; MAE / RMSE / R²: K+ 0.84 / 1.76 / 0.76, PDS 1.23 / 2.77 / 0.88.
-- Both trained 1 epoch on all training rows, MSE, Adam lr 1e-3.
+### Published references: the Gate 1 baselines, read from the papers; take these values, do not re-derive them
 
-### Released checkpoints (TensorFlow 2.3)
+Every chr1 bin, held-out test chromosome; chr2 validation; trained on all other chromosomes, 1 epoch, MSE, Adam
+lr 1e-3; mismatch score in % (raw scale).
+
+| Model | Condition | MAE | RMSE | R² | Pearson R | Source |
+|---|---|---|---|---|---|---|
+| TransG4 | K+ | 0.837 | 1.762 | 0.761 | 0.873 | Yuan et al. 2026 PCCP, 10.1039/d6cp00173d, Table 2 |
+| TransG4 | K+PDS | 1.228 | 2.767 | 0.885 | 0.941 | same, Table 3 |
+| G4mismatch | K+ | 0.92 | 1.97 | 0.70 | 0.84 | TransG4 Table 1; R also in Barshai et al. 2023 PLoS CB, 10.1371/journal.pcbi.1010948 |
+| G4mismatch | K+PDS | 1.47 | 3.29 | 0.84 | 0.91 | same |
+| CNN-BiGRU (TransG4 ablation) | K+ / K+PDS | 0.868 / 1.276 | 1.811 / 2.878 | 0.748 / 0.876 | 0.867 / 0.936 | TransG4 Tables 2–3 |
+| BiGRU (TransG4 ablation) | K+ / K+PDS | 0.852 / 1.275 | 1.773 / 2.865 | 0.759 / 0.877 | 0.871 / 0.937 | TransG4 Tables 2–3 |
+
+Rules for using them:
+- Compare **regression metrics only**. Pearson R is primary; MAE / RMSE / R² are secondary. Our `test_metrics.json`
+  already reports them on the raw mismatch-% scale (`RegressionModule.postprocess` undoes the standardisation): check
+  this once.
+- Do **not** compare detection metrics (precision / recall / Jaccard) with TransG4's. Its paper says predictions are
+  thresholded at 25 / 35, but its released notebook was found earlier to sweep the threshold on test labels.
+- The published values have no reported seed spread or interval. Report our value with its interval and the
+  published value as a fixed reference.
+- G4-Attention's mismatch-regression numbers are only in its PCCP 2026 version, which is not in `ref_papers/`. Leave
+  it out unless I provide that PDF.
+
+### Released checkpoints (TensorFlow 2.3): OPTIONAL, only if I ask for it later
 - `github.com/OrensteinLab/G4mismatch`: `models/model_K.h5`, `models/model_KPDS.h5`. Architecture: Conv1D(256, k = 95,
   ReLU) → GlobalMaxPool → Dense(32, ReLU) → Dense(1, linear); 105,793 parameters. N = 0.25 per channel. Read
   `mm_utils.py` for the one-hot channel order and `mm_gen.py` for the strand flip (`seq[::-1, ::-1]` on '+' rows).
@@ -74,22 +106,39 @@ full-data baseline (run1) scored on all chr1 bins gave R 0.859.
 
 **Gate 2 changes the input only; it leaves the operator as is.**
 
-## Gate 1: protocol parity
+## Gate 1: protocol parity (complete dataset vs reported values)
 
-1. **Environment exception, ask me first.** `CLAUDE.md` allows only `g4gnn`. Scoring the TF checkpoints needs a
-   separate env, e.g. `g4ref` with TensorFlow and tf-keras. Propose the exact env and wait for approval.
-   - Try loading `.h5` with current TF/tf-keras, and the SavedModel with `tf.saved_model.load`.
-   - If loading fails, propose a fallback: a pinned older TF, or porting the weights into a PyTorch reimplementation
-     and checking that the outputs match on 1,000 windows to |Δ| < 1e-4.
-2. Add `scripts/score_reference.py`. It reads windows through **our** index and genome store, encodes them exactly as
-   the reference code does (channel order, N = 0.25, strand flip), and writes per-row predictions for a split. Keep
-   TF imports out of `src/g4shape` (the layering test must stay green).
-   - **Unit test:** on 200 rows, our encoding equals a re-implementation of `mm_gen.read_seq`.
-3. Add an evaluation module, `src/g4shape/analysis/evaluate_rows.py` or similar, that takes (row ids, predictions) for
-   several models on **identical rows** and reports:
-   - Pearson, Spearman, MAE, RMSE, R² on all rows;
-   - Spearman and Pearson within true G4s;
-   - per-class recall and mean residual. Classes are regexes on the 215-nt window, first match wins, from
+No reference model is rebuilt, retrained or loaded: the baselines are the reported values above.
+
+1. **Configs on the complete dataset** (one commit). In `configs/pds_r0.yaml` and `configs/k_r0.yaml`:
+   - `data.index_dir: data/g4seq_PDS` / `data/g4seq_K` (the complete indexes);
+   - `max_train: null` (all training rows);
+   - `max_test: null` (every chr1 row);
+   - `max_val: 1000000` with `subsample_seed: 0`. Validation, used for early stopping and threshold tuning, is a fixed
+     1M-row uniform chr2 subset, because a full chr2 pass every validation is too costly. Write the reason in the
+     config comment.
+
+   Rewrite the comment block that describes the weighted `_fast` subset. Keep `task.y_mean / y_std`: they are already
+   the full-train-split statistics. The full index has no weight column, so training is unweighted MSE, as in
+   TransG4 / G4mismatch; confirm that the loader and loss handle an unweighted index. Run the tests.
+2. **Published-reference module** (one commit), e.g. `src/g4shape/analysis/published.py`. A constant table holding
+   exactly the values above, with model, condition, metric, value, source DOI and table number. A function
+   `compare(test_metrics, condition, index_dir)` returns one row per (reference, metric): ours, published, and Δ.
+   - **Protocol guard:** it refuses (raises) unless the run's `test_n_samples` is at least 0.999 × the test count in
+     `<index_dir>/index.json`. So a run scored on the 2M sample can never be presented next to published numbers.
+     An explicit `allow_sample=True` labels the output "NOT comparable: sampled test set".
+   - **Condition check:** the condition must match the run's `task.label_threshold` (35 = K+PDS, 25 = K+) when the
+     run's `config.yaml` is available.
+   - **Tests** (no real data): the table has both conditions and all four metrics; the guard refuses
+     n = 2,000,000 against a fake index of 29,923,093 and accepts the full count; Δ is computed correctly.
+3. **Script** `scripts/compare_published.py <runs/<run>/test_metrics.json | runs/eval/<name>.json> --condition
+   {K,PDS}`. It prints a table and writes `<run>/published_comparison.json`.
+4. **Row-level evaluation module and paired genomic block bootstrap** (one or two commits), e.g.
+   `src/g4shape/analysis/evaluate_rows.py`. It takes (row ids, predictions) for one or more of our runs on identical
+   rows and reports:
+   - all-row Pearson, Spearman, MAE, RMSE, R²;
+   - Pearson and Spearman within true G4s (y > 35 K+PDS, y > 25 K+);
+   - per-class recall and mean residual. Classes are regexes on the 215-nt window, first match wins, taken from
      `G4_GNN_fast/analysis_scripts/scripts/analyze_run_forward.py`:
 
      | Class | Regex |
@@ -98,20 +147,24 @@ full-data baseline (run1) scored on all chr1 bins gave R 0.859.
      | long_loop | the same with `{1,12}` loops |
      | two_tetrad | `G{2,}` tracts with `{1,7}` loops |
      | none | otherwise |
-   - detection precision / recall / Jaccard with the threshold tuned on chr2 (max Jaccard), plus AUPRC;
-   - a **paired genomic block bootstrap**: 100-kb blocks on chr1 by bin start; 1,000 resamples; the same resampled
-     blocks for every model; 95 % intervals for each metric and for each model difference.
+   - detection precision / recall / Jaccard (threshold tuned on the chr2 validation subset, max Jaccard) and AUPRC,
+     **for comparisons between our own runs only**.
 
-   Unit-test the bootstrap on synthetic data: identical predictions give Δ = 0 with zero width.
-4. Score on **every chr1 test row**, both conditions:
-   - G4mismatch K and KPDS, TransG4 K (released checkpoints);
-   - our checkpoints: `G4_GNN_fast/runs/fast_PDS_posonly`, `fast_PDS_gatv2_pos_graphonly`, `fast_K_gatv2_pos`, via
-     `python -m scripts.evaluate <ckpt> --config <yaml with index_dir = full index, max_test: null>`.
+   For the bootstrap, `evaluate.py` gets an option to save per-row predictions with row ids (`.npy`). `evaluate.py` gets an option to save per-row
+   predictions with row ids (`.npy`). The bootstrap resamples 100-kb blocks on chr1 by bin start, 1,000 times, and
+   gives 95 % intervals for our R, RMSE, MAE and R², and for differences between our runs on identical rows.
+   - Against a published value, report our interval and whether it contains the reference value; there is no paired
+     test, since we have no per-row predictions for the published models.
+   - Unit test on synthetic data: identical predictions give Δ = 0 with zero width.
+5. **Score existing checkpoints on every chr1 row**, with no retraining:
+   - `G4_GNN_fast/runs/fast_PDS_posonly`, `fast_PDS_gatv2_pos_graphonly`, `fast_K_gatv2_pos`, via
+     `python -m scripts.evaluate <ckpt> --config <pds_r0|k_r0>.yaml --name <name>_fullchr1`;
+   - then `scripts/compare_published.py` on each.
 
-   Store predictions as `.npy` with row ids, so all later comparisons are paired.
-5. **Gate 1 pass criterion:** each released reference reproduces its published Pearson within ±0.01. If not, stop and
-   find the protocol difference (strand, encoding, rows) before anything else.
-6. Report the measured gap (Δ R with 95 % interval) between our best checkpoint and each reference.
+   These numbers replace the 2M-sample ones in `docs/RESULTS.md`; keep the old ones, labelled "2M sample".
+6. **Gate 1 output:** a table of our best existing checkpoint vs TransG4 and G4mismatch (R, MAE, RMSE, R², each with
+   our 95 % interval and Δ to the published value), per condition. This is the measured gap. There is no pass/fail:
+   it is the starting point for Gate 2.
 
 ## Gate 2: input fidelity and learning curves (PDS first; K+ replication at the end)
 
@@ -123,8 +176,10 @@ setting, default off.
    padding 'same'), ReLU, global max-pool, Linear(256 → 32), ReLU, Linear(32 → 1); about 105.8k parameters). Same
    one-hot, N = 0.25. Add it as a new model in the factory with its own dataset path (one-hot windows); it does not
    touch the graph path.
-   - **Check:** trained on all PDS training rows, it lands within noise of the released G4mismatch on full chr1
-     (Gate 1 numbers). This validates the training recipe.
+   - **Check:** trained on all PDS training rows (and later K+), it lands within ±0.01 of the **reported**
+     G4mismatch Pearson on every chr1 row: 0.91 K+PDS, 0.84 K+. This validates our training recipe and data pipeline
+     against the paper without loading their checkpoint. If it misses, stop and find the cause before training the
+     graph arms.
 2. **`r0`:** today's `configs/pds_r0.yaml`, unchanged.
 3. **`r0_plus`: the input fix.** Three changes, each its own setting and its own commit, introduced in this order with
    tests:
@@ -185,8 +240,8 @@ Commit these to `docs/RESULTS.md` before training.
    - **NO-GO** if cnn_g4mm ≥ r0_plus at every fraction (Δ ≤ 0 with the interval not excluding 0 in r0_plus's favour
      anywhere). The graph-as-better-predictor claim is then dropped.
    - **INCONCLUSIVE** otherwise. The only allowed remedy is more seeds, not new arms.
-4. Also report, without using them in the verdict: r0_plus vs r0 (does the input fix help?); r0_plus vs TransG4
-   released (K+); per-class recall (expectation: the largest gain is in two_tetrad); and the leave-one-out
+4. Also report, without using them in the verdict: r0_plus vs r0 (does the input fix help?); r0_plus (and cnn_g4mm) at 100 % vs the **reported** TransG4 and
+   G4mismatch values in both conditions (`scripts/compare_published.py`); per-class recall (expectation: the largest gain is in two_tetrad); and the leave-one-out
    attributions.
 
 ## Engineering rules
