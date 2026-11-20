@@ -11,7 +11,15 @@ data loading here (the analysis layer imports no other layer).
   only**: never against TransG4's detection numbers (its notebook tunes on test labels).
 
 The metric definitions match ``g4shape.lightning.metrics`` (the training-time metrics), which
-the tests check. The paired genomic block bootstrap is not here yet.
+the tests check.
+
+Uncertainty: :func:`block_bootstrap`, a paired genomic block bootstrap. Rows are grouped in
+100-kb blocks of chr1 by bin start (neighbouring bins overlap and are not independent); the
+blocks are resampled with replacement 1,000 times, the same draw for every run, giving 95 % and
+90 % percentile intervals of R, RMSE, MAE, R² per run and of their differences between runs.
+Each resample reweights per-block sums, so it costs O(blocks), not O(rows).
+:func:`vs_published` says whether our interval contains a published value (no paired test: we
+have no per-row predictions of the published models).
 """
 
 from __future__ import annotations
@@ -166,3 +174,96 @@ def evaluate_rows(runs: Mapping[str, tuple], y, label_threshold: float,
                 res["per_class"] = per_class(p, t, classes, label_threshold, g4_t)
         out["runs"][name] = res
     return out
+
+
+# ---------------------------------------------------------------- paired genomic block bootstrap
+
+BOOT_METRICS = ("pearson", "rmse", "mae", "r2")
+BLOCK_SIZE = 100_000
+N_BOOT = 1000
+LEVELS = (0.95, 0.90)
+
+
+def block_ids(starts, block_size: int = BLOCK_SIZE) -> np.ndarray:
+    """Block of each row: ``bin start // block_size`` (one chromosome, e.g. chr1)."""
+    return np.asarray(starts, dtype=np.int64).ravel() // int(block_size)
+
+
+def _block_sums(pred: np.ndarray, y: np.ndarray, inv: np.ndarray, n_blocks: int) -> np.ndarray:
+    """Per-block sums [n_blocks, 8]: n, p, y, p², y², p·y, |e|, e² (e = p - y). p and y are
+    centred on their overall means first (Pearson and R² do not change; fewer rounding errors)."""
+    e = pred - y
+    p, t = pred - pred.mean(), y - y.mean()
+    cols = (np.ones_like(t), p, t, p * p, t * t, p * t, np.abs(e), e * e)
+    return np.stack([np.bincount(inv, weights=c, minlength=n_blocks) for c in cols], axis=1)
+
+
+def _metrics_from_sums(s: np.ndarray) -> dict[str, np.ndarray]:
+    """R, RMSE, MAE, R² from summed block sums ``s`` [..., 8]."""
+    n, sp, st, spp, stt, spt, sae, sse = np.moveaxis(np.asarray(s, dtype=np.float64), -1, 0)
+    vp, vt, cov = spp - sp * sp / n, stt - st * st / n, spt - sp * st / n
+    den = np.sqrt(np.clip(vp * vt, 0.0, None))
+    safe = lambda d: np.where(d > 0, d, 1.0)  # noqa: E731
+    return {"pearson": np.where(den > 0, cov / safe(den), 0.0), "rmse": np.sqrt(sse / n),
+            "mae": sae / n, "r2": np.where(vt > 0, 1.0 - sse / safe(vt), 0.0)}
+
+
+def _summary(value: float, samples: np.ndarray, levels) -> dict:
+    out = {"value": float(value)}
+    for lv in levels:
+        a = (1.0 - lv) / 2.0
+        lo, hi = np.percentile(samples, [100 * a, 100 * (1 - a)])
+        out[f"ci{int(round(100 * lv))}"] = [float(lo), float(hi)]
+    return out
+
+
+def block_bootstrap(preds: Mapping[str, np.ndarray], y, starts, n_boot: int = N_BOOT,
+                    block_size: int = BLOCK_SIZE, seed: int = 0, levels=LEVELS,
+                    keep_samples: bool = False) -> dict:
+    """Paired block bootstrap of one or more runs on identical rows.
+
+    ``preds``: ``{name: pred}`` (rows aligned, e.g. by :func:`align_runs`); ``y``: true scores;
+    ``starts``: bin start of each row (one chromosome). Returns, per run and metric, the value on
+    all rows and percentile intervals (``ci95``, ``ci90``), and the same for ``"a - b"`` for every
+    pair of runs, all from the same block draws. ``keep_samples`` adds the draws (``counts``
+    [n_boot, n_blocks]) and the per-run bootstrap ``samples``.
+    """
+    t = _f64(y)
+    blocks = block_ids(starts, block_size)
+    if blocks.size != t.size:
+        raise ValueError(f"{blocks.size} starts for {t.size} rows")
+    uniq, inv = np.unique(blocks, return_inverse=True)
+    nb = uniq.size
+    rng = np.random.default_rng(seed)
+    counts = rng.multinomial(nb, np.full(nb, 1.0 / nb), size=n_boot).astype(np.float64)
+    point, samples = {}, {}
+    for name, p in preds.items():
+        p = _f64(p)
+        if p.size != t.size:
+            raise ValueError(f"{name}: {p.size} predictions for {t.size} rows")
+        s = _block_sums(p, t, inv, nb)
+        point[name] = {k: float(v) for k, v in _metrics_from_sums(s.sum(axis=0)).items()}
+        samples[name] = _metrics_from_sums(counts @ s)
+    names = list(preds)
+    out = {"n_rows": int(t.size), "n_blocks": int(nb), "block_size": int(block_size),
+           "n_boot": int(n_boot), "seed": int(seed),
+           "runs": {n: {m: _summary(point[n][m], samples[n][m], levels) for m in BOOT_METRICS}
+                    for n in names},
+           "diffs": {}}
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            out["diffs"][f"{a} - {b}"] = {
+                m: _summary(point[a][m] - point[b][m], samples[a][m] - samples[b][m], levels)
+                for m in BOOT_METRICS}
+    if keep_samples:
+        out["counts"], out["samples"] = counts, samples
+    return out
+
+
+def vs_published(boot: dict, run: str, metric: str, value: float, level: float = 0.95) -> dict:
+    """Our value and interval next to a published value: ``contains`` = the published value
+    lies inside our interval. Not a paired test (no per-row predictions of the published model)."""
+    r = boot["runs"][run][metric]
+    lo, hi = r[f"ci{int(round(100 * level))}"]
+    return {"metric": metric, "ours": r["value"], "ci": [lo, hi], "published": float(value),
+            "delta": r["value"] - float(value), "contains": bool(lo <= value <= hi)}

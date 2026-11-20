@@ -84,3 +84,60 @@ def test_evaluate_rows_needs_identical_rows(scores):
     assert "per_class" in out["runs"]["a"] and "detection" in out["runs"]["b"]
     with pytest.raises(ValueError, match="same rows"):
         ev.evaluate_rows({"a": (ids, pred), "b": (ids[::-1], pred)}, y, 35.0)
+
+
+@pytest.fixture
+def chr1_rows():
+    """Rows on 40 blocks of 100 kb (bins every 1 kb), a run and a clearly better run."""
+    rng = np.random.default_rng(2)
+    starts = np.arange(0, 4_000_000, 1000)
+    y = rng.gamma(0.5, 8.0, starts.size)
+    good = y + rng.normal(0, 2.0, y.size)
+    bad = y + rng.normal(0, 8.0, y.size)
+    return starts, y, good, bad
+
+
+def test_bootstrap_identical_runs_give_zero_difference(chr1_rows):
+    starts, y, good, _ = chr1_rows
+    out = ev.block_bootstrap({"a": good, "b": good.copy()}, y, starts, n_boot=200)
+    for m in ev.BOOT_METRICS:
+        d = out["diffs"]["a - b"][m]
+        assert d["value"] == 0.0 and d["ci95"] == [0.0, 0.0] and d["ci90"] == [0.0, 0.0]
+
+
+def test_bootstrap_sums_match_direct_recomputation(chr1_rows):
+    starts, y, good, _ = chr1_rows
+    out = ev.block_bootstrap({"a": good}, y, starts, n_boot=5, keep_samples=True)
+    assert out["n_blocks"] == 40
+    for m in ev.BOOT_METRICS:                          # the value on all rows
+        assert out["runs"]["a"][m]["value"] == pytest.approx(ev.regression(good, y)[m], rel=1e-9)
+    blocks = ev.block_ids(starts)
+    for b in range(5):                                 # each draw, rebuilt row by row
+        idx = np.concatenate([np.flatnonzero(blocks == k) for k, c in
+                              enumerate(out["counts"][b].astype(int)) for _ in range(c)])
+        direct = ev.regression(good[idx], y[idx])
+        for m in ev.BOOT_METRICS:
+            assert out["samples"]["a"][m][b] == pytest.approx(direct[m], rel=1e-9), (b, m)
+
+
+def test_bootstrap_is_seeded_and_detects_a_better_run(chr1_rows):
+    starts, y, good, bad = chr1_rows
+    a = ev.block_bootstrap({"good": good, "bad": bad}, y, starts, n_boot=300, seed=7)
+    b = ev.block_bootstrap({"good": good, "bad": bad}, y, starts, n_boot=300, seed=7)
+    assert a["runs"] == b["runs"] and a["diffs"] == b["diffs"]
+    d = a["diffs"]["good - bad"]
+    assert d["pearson"]["ci95"][0] > 0 and d["rmse"]["ci95"][1] < 0
+    lo, hi = a["runs"]["good"]["pearson"]["ci95"]
+    assert lo < a["runs"]["good"]["pearson"]["value"] < hi
+    lo90, hi90 = a["runs"]["good"]["pearson"]["ci90"]
+    assert lo <= lo90 and hi90 <= hi
+
+
+def test_vs_published(chr1_rows):
+    starts, y, good, _ = chr1_rows
+    boot = ev.block_bootstrap({"a": good}, y, starts, n_boot=200)
+    r = boot["runs"]["a"]["pearson"]
+    inside = ev.vs_published(boot, "a", "pearson", r["value"])
+    outside = ev.vs_published(boot, "a", "pearson", r["ci95"][1] + 0.05)
+    assert inside["contains"] and inside["delta"] == 0.0
+    assert not outside["contains"] and outside["delta"] < 0
