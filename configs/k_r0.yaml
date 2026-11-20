@@ -5,17 +5,18 @@
 # Train: python -m g4shape.train --config configs/k_r0.yaml [--set section.key=value ...]
 data:
   genome_dir: data/hg19              # build_genome_store output
-  index_dir: data/g4seq_K_fast    # weighted subsample of data/g4seq_K, built with:
-  #   python -m scripts.make_subset --source data/g4seq_K --out data/g4seq_K_fast \
-  #       --cutoff 10 --keep-low 0.02 --val 1000000 --test 2000000 --seed 0
-  # train: every window with score >= 10 (weight 1) + a 2 % sample of the rest (weight 50);
-  # val: 1,000,000 uniform chr2 windows; test: 2,000,000 uniform chr1 windows (unweighted).
+  index_dir: data/g4seq_K            # complete G4-seq index (GSE110582, hg19): every row, no weights
+  # train: every row off chr1/chr2 (311,734,698); no weight column, so plain MSE (TransG4 / G4mismatch);
+  # val: a fixed 1,000,000-row uniform chr2 subset (max_val + subsample_seed) for early stopping and
+  #   threshold tuning: a full chr2 pass (31.4M rows) at every validation costs too much;
+  # test: every chr1 row (29,534,138), the protocol of the published values (docs/GATES_AGENT_PROMPT.md).
+  # The weighted subset data/g4seq_K_fast (scripts/make_subset.py) is kept only for the golden test.
   flank: 100                         # window = 100 + 15 + 100 = 215 nt
   reverse_strand: +                  # '+' rows are reverse-complemented (TransG4)
-  max_train: null                    # null: the subset already fixes the sizes
-  max_val: null
-  max_test: null
-  subsample_seed: 0
+  max_train: null                    # null: all training rows
+  max_val: 1000000                   # fixed uniform chr2 subset (see above)
+  max_test: null                     # null: every chr1 row
+  subsample_seed: 0                  # seeds the val subset
   batch_size: 256                    # GLOBAL batch (split over GPUs)
   eval_batch_size: 512
   num_workers: auto                  # per rank; from the idle-CPU budget
