@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import torch
 import yaml
 
 from g4shape.resources import (HANDOFF_ENV, ResourceConfig, ResourcePlan, cpu_budget, handoff,
@@ -35,6 +36,11 @@ def fake_smi(*snapshots):
 def env(monkeypatch):
     for k in ("CUDA_VISIBLE_DEVICES", "CUDA_DEVICE_ORDER", HANDOFF_ENV, "LOCAL_RANK"):
         monkeypatch.delenv(k, raising=False)
+    # On a GPU machine, earlier tests that run trainer.fit on CPU leave CUDA initialised
+    # (Lightning's isolate_rng collects every visible GPU's RNG state). These tests use a fake
+    # nvidia-smi and no real GPU, so plan_resources' guard must not see that leftover state;
+    # test_refuses_after_cuda_is_initialised checks the guard itself.
+    monkeypatch.setattr(torch.cuda, "is_initialized", lambda: False)
     return monkeypatch
 
 
@@ -297,3 +303,10 @@ def test_prepare_worker_fork_collects_and_freezes():
         assert gc.get_freeze_count() > 0  # inherited objects are invisible to a forked child's gc
     finally:
         gc.unfreeze()
+
+
+
+def test_refuses_after_cuda_is_initialised(env):
+    env.setattr(torch.cuda, "is_initialized", lambda: True)
+    with pytest.raises(RuntimeError, match="before CUDA is initialised"):
+        _plan(smi=fake_smi(SHARED))
